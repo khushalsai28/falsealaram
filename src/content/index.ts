@@ -5,7 +5,7 @@ import { extract, type ChunkRef } from './extract';
 import * as hl from './highlight';
 import * as ui from './ui';
 
-const MAX_CHUNKS = 350, MAX_CHARS = 525000, DEBOUNCE = 1500;
+const MAX_CHUNKS = 350, MAX_CHARS = 525000, MAX_PAGE_CLAIMS = 5, DEBOUNCE = 1500;
 let S: Settings, active = false, scanning = false, status = 'Idle', claimsFound = 0;
 let observer: MutationObserver | null = null, timer = 0;
 const seen = new Set<string>();                 // hashes of text blocks already sent -> never re-checked
@@ -15,8 +15,8 @@ const dirty = new Set<Element>();               // roots added by MutationObserv
 
 function blockedReason(): string | null {
   if (chrome.extension?.inIncognitoContext) return 'Disabled in incognito windows.';
-  if (isBlockedUrl(location.href, S.blocklist)) return 'Sensitive site (blocklist) - FalseAlarm is off here.';
-  if (document.querySelector('input[type="password"]')) return 'Page has a password field - skipped for safety.';
+  if (isBlockedUrl(location.href, S.blocklist)) return 'Sensitive site (blocklist) - falsealaram is off here.';
+  if (document.querySelector('input[type="password"], input[autocomplete~="current-password"], input[autocomplete~="new-password"]')) return 'Page has a password field - skipped for safety.';
   return null;
 }
 
@@ -24,10 +24,12 @@ async function scan(manual: boolean) {
   if (scanning || !active) return;
   const why = blockedReason();
   if (why) { status = why; if (manual) ui.showProgress({ stage: 'error', message: why }); return; }
-  const budget = S.maxClaims - claimsFound;
-  if (budget <= 0) { status = `Claim limit (${S.maxClaims}) reached`; if (manual) ui.showProgress({ stage: 'done', message: status }); return; }
+  const limit = Math.min(MAX_PAGE_CLAIMS, S.maxClaims);
+  const budget = limit - claimsFound;
+  if (budget <= 0) { status = `Claim limit (${limit}) reached`; if (manual) ui.showProgress({ stage: 'done', message: status }); return; }
 
   scanning = true;
+  let attempted: ChunkRef[] = [];
   try {
     const roots = manual || !dirty.size ? [document.body] : [...dirty];
     dirty.clear(); refs.clear();
@@ -41,17 +43,20 @@ async function scan(manual: boolean) {
       if (picked.length >= MAX_CHUNKS || chars + c.text.length > MAX_CHARS) break;
       picked.push(c); chars += c.text.length; seen.add(c.hash); refs.set(c.id, c);
     }
+    attempted = picked;
     if (!picked.length) { if (manual) ui.showProgress({ stage: 'done', message: 'No new text to scan.' }); return; }
 
     const res = (await chrome.runtime.sendMessage({
       type: 'SCAN_REQUEST', payload: { pageUrl: location.href, chunks: picked.map(({ id, text }) => ({ id, text })), maxClaims: budget },
     })) as ScanSummary | undefined;
-    if (!res) throw new Error('No response from FalseAlarm background.');
+    if (!res) throw new Error('No response from falsealaram background.');
+    if (!res.ok) for (const c of attempted) seen.delete(c.hash);
     claimsFound += res.claimsFound;
     if (!res.ok && res.error) status = res.error;
     startObserver();
   } catch (e) {
-    const m = /context invalidated|Receiving end/i.test(String((e as Error).message)) ? 'FalseAlarm was updated - reload this tab.' : (e as Error).message;
+    for (const c of attempted) seen.delete(c.hash);
+    const m = /context invalidated|Receiving end/i.test(String((e as Error).message)) ? 'falsealaram was updated - reload this tab.' : (e as Error).message;
     status = m; ui.showProgress({ stage: 'error', message: m });
   } finally {
     scanning = false;

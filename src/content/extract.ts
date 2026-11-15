@@ -1,13 +1,13 @@
 import { hash32 } from '../shared/text';
 
-export const HOST_ID = 'falsealarm-root';
+export const HOST_ID = 'falsealaram-root';
 export interface ChunkRef { id: string; hash: string; el: Element; nodes: Text[]; text: string }
 
 const SKIP = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'NAV', 'FOOTER', 'ASIDE', 'IFRAME', 'SVG', 'CANVAS',
   'TEXTAREA', 'INPUT', 'SELECT', 'OPTION', 'BUTTON', 'CODE', 'PRE', 'HEAD', 'VIDEO', 'AUDIO']);
 const ROLES = new Set(['navigation', 'contentinfo', 'complementary', 'dialog']);
 const AD = /(^|[\s_-])(ads?|advert(isement)?|sponsored|cookie|consent|newsletter|promo)($|[\s_-])/i;
-const MIN_WORDS = 8, MAX_CHARS = 1500;
+const MIN_WORDS = 4, MAX_CHARS = 1500;
 
 function skippable(e: Element): boolean {
   if (e.id === HOST_ID || SKIP.has(e.tagName.toUpperCase())) return true;

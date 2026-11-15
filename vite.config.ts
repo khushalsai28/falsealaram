@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
       envDir: __dirname,
       build: {
         outDir: r('dist'), emptyOutDir: false, target: 'chrome110',
-        lib: { entry: r(`src/${mode}/index.ts`), name: `FalseAlarm_${mode}`, formats: ['iife'] as const, fileName: () => `${mode}.js` },
+        lib: { entry: r(`src/${mode}/index.ts`), name: `falsealaram_${mode}`, formats: ['iife'] as const, fileName: () => `${mode}.js` },
       },
     };
   }

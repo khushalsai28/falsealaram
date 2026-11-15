@@ -1,19 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "FalseAlarm",
+  "name": "falsealaram",
   "version": "0.1.0",
-  "description": "Highlights suspicious claims and shows scholarly corrections. AI-assisted - verify results.",
+  "description": "falsealaram highlights questionable claims and links to scholarly sources. AI-assisted results — verify before sharing.",
   "minimum_chrome_version": "110",
-  "permissions": ["storage"],
+  "permissions": ["activeTab", "storage", "scripting"],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
     "https://api.x.ai/*",
     "https://api.openalex.org/*",
-    "https://scholar.google.com/*",
+    "https://api.semanticscholar.org/*",
     "http://localhost:8787/*"
   ],
   "background": { "service_worker": "background.js" },
   "content_scripts": [{ "matches": ["http://*/*", "https://*/*"], "js": ["content.js"], "run_at": "document_idle" }],
-  "action": { "default_popup": "popup/popup.html", "default_title": "FalseAlarm" },
+  "action": { "default_popup": "popup/popup.html", "default_title": "falsealaram" },
   "options_ui": { "page": "options/options.html", "open_in_tab": true }
 }

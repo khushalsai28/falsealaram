@@ -38,15 +38,15 @@ export function parseScholar(html: string): Source[] {
     const year = Number(meta.match(/\b(19|20)\d{2}\b/)?.[0]) || null;
     out.push({
       title: clean(a[2]), url: new URL(clean(a[1]).replace(/&amp;/g, '&'), 'https://scholar.google.com').href,
-      authors: (parts[0] ?? '').split(',').map((x) => x.trim()).filter((x) => x && x !== '…'),
-      year, abstract: clean(b.match(/<div class="gs_rs">([\s\S]*?)<\/div>/)?.[1] ?? ''), provider: 'Google Scholar',
+      authors: (parts[0] ?? '').split(',').map((x) => x.trim()).filter((x) => x && x !== '…').join(', '),
+      year, abstract: clean(b.match(/<div class="gs_rs">([\s\S]*?)<\/div>/)?.[1] ?? ''), provider: 'google-scholar',
     });
   }
   return out;
 }
 
 const scholar: SourceProvider = {
-  name: 'Google Scholar',
+  name: 'google-scholar',
   async search(q, limit) {
     if (Date.now() < blockedUntil) throw new ProviderError('Google Scholar paused after a block');
     const block = (why: string) => { blockedUntil = Date.now() + 10 * 60_000; return new ProviderError(why); };
@@ -64,7 +64,26 @@ const scholar: SourceProvider = {
   },
 };
 
-// ---------- OpenAlex (fallback; free, no key required) ----------
+// ---------- Semantic Scholar (primary live provider; free, no key required) ----------
+const semanticScholar: SourceProvider = {
+  name: 'semantic-scholar',
+  async search(q, limit) {
+    const p = new URLSearchParams({
+      query: q, fields: 'title,abstract,year,authors,externalIds,url', limit: String(limit),
+    });
+    const j: any = await (await fetchRetry(`https://api.semanticscholar.org/graph/v1/paper/search?${p}`, {}, { timeoutMs: 15000 })).json();
+    return (j.data ?? []).map((paper: any): Source => ({
+      title: paper.title ?? 'Untitled',
+      authors: (paper.authors ?? []).map((a: any) => a.name).filter(Boolean).join(', '),
+      year: paper.year ?? null,
+      url: paper.url || (paper.externalIds?.DOI ? `https://doi.org/${paper.externalIds.DOI}` : ''),
+      abstract: paper.abstract ?? '',
+      provider: 'semantic-scholar',
+    })).filter((s: Source) => s.url);
+  },
+};
+
+// ---------- OpenAlex (last fallback; free, no key required) ----------
 const invert = (idx: Record<string, number[]> | null): string => {
   if (!idx) return '';
   const words: string[] = [];
@@ -72,7 +91,7 @@ const invert = (idx: Record<string, number[]> | null): string => {
   return words.join(' ');
 };
 const openAlex = (key?: string): SourceProvider => ({
-  name: 'OpenAlex',
+  name: 'openalex',
   async search(q, limit) {
     const p = new URLSearchParams({
       search: q, filter: 'has_abstract:true', 'per-page': String(limit),
@@ -82,20 +101,20 @@ const openAlex = (key?: string): SourceProvider => ({
     const j: any = await (await fetchRetry(`https://api.openalex.org/works?${p}`, {}, { timeoutMs: 15000 })).json();
     return (j.results ?? []).map((w: any): Source => ({
       title: w.title ?? 'Untitled',
-      authors: (w.authorships ?? []).map((a: any) => a.author?.display_name).filter(Boolean),
+      authors: (w.authorships ?? []).map((a: any) => a.author?.display_name).filter(Boolean).join(', '),
       year: w.publication_year ?? null,
       url: w.doi || w.primary_location?.landing_page_url || '',
-      abstract: invert(w.abstract_inverted_index), provider: 'OpenAlex',
+      abstract: invert(w.abstract_inverted_index), provider: 'openalex',
     })).filter((s: Source) => s.url);
   },
 });
 
-/** Scholar first (if enabled), OpenAlex tops up. Throws only if EVERY provider errored. */
+/** Scholar is proxy-only; live providers top up one another and Scholar failures are silent. */
 export async function searchSources(
   keywords: string[], o: { scholar: boolean; openAlexKey?: string; limit?: number },
 ): Promise<Source[]> {
   const limit = o.limit ?? 3;
-  const providers = [...(o.scholar ? [scholar] : []), openAlex(o.openAlexKey)];
+  const providers = [...(o.scholar ? [scholar] : []), semanticScholar, openAlex(o.openAlexKey)];
   const queries = [...new Set([keywords.join(' '), keywords.slice(0, 2).join(' ')])].filter(Boolean);
   const out: Source[] = [], seen = new Set<string>(), errors: string[] = [];
   for (const p of providers) {
@@ -106,11 +125,14 @@ export async function searchSources(
           const k = s.title.toLowerCase();
           if (!seen.has(k)) { seen.add(k); out.push(s); got++; }
         }
-      } catch (e) { errors.push(`${p.name}: ${(e as Error).message}`); break; }
+      } catch (e) {
+        if (p.name !== 'google-scholar') errors.push(`${p.name}: ${(e as Error).message}`);
+        break;
+      }
       if (got) break;
     }
     if (out.length >= limit) return out.slice(0, limit);
   }
-  if (!out.length && errors.length === providers.length) throw new Error(`Scholarly search failed (${errors.join('; ')})`);
+  if (!out.length && errors.length) throw new Error(`Scholarly search failed (${errors.join('; ')})`);
   return out;
 }

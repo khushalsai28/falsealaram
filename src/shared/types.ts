@@ -1,5 +1,5 @@
-export type Verdict = 'supported' | 'contradicted' | 'partially supported' | 'insufficient evidence';
-export type ProviderName = 'Google Scholar' | 'OpenAlex';
+export type Verdict = 'supported' | 'contradicted' | 'partially-supported' | 'insufficient-evidence';
+export type ProviderName = 'google-scholar' | 'semantic-scholar' | 'openalex' | 'none';
 
 export interface Chunk { id: string; text: string }
 export interface Claim {
@@ -8,14 +8,14 @@ export interface Claim {
   chunkId: string; text: string; reason: string; confidence: number; keywords: string[];
 }
 export interface Source {
-  title: string; authors: string[]; year: number | null; url: string; abstract: string;
+  title: string; authors: string; year: number | null; url: string; abstract: string;
   provider: ProviderName; summary?: string;
 }
 export interface FactCheckResult {
   claimId: string; claimHash: string; claimText: string; verdict: Verdict;
   explanation: string; correction: string;
   supportingSources: number[]; // 1-based indexes into `sources`
-  sources: Source[]; checkedAt: number; error?: string;
+  sources: Source[]; scholarUrl: string; checkedAt: number; error?: string; demoMode?: boolean;
 }
 export interface Settings {
   enabled: boolean; autoScan: boolean; mode: 'direct' | 'proxy';

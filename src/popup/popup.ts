@@ -13,7 +13,7 @@ async function refresh() {
     statusEl.textContent = r.blocked ?? `${r.status} · ${r.claims} claims checked`;
     scanBtn.disabled = !r.enabled || !!r.blocked;
   } catch {
-    statusEl.textContent = 'Not available on this page (reload the tab if you just installed FalseAlarm).';
+    statusEl.textContent = 'Not available on this page (reload the tab if you just installed falsealaram).';
     scanBtn.disabled = true;
   }
 }

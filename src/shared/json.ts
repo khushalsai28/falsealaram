@@ -31,12 +31,12 @@ export function asSummaries(raw: unknown): Map<number, string> {
   for (const s of arr) if (isObj(s) && Number.isInteger(s.n)) m.set(s.n, str(s.summary, 500));
   return m;
 }
-const VERDICTS: Verdict[] = ['supported', 'contradicted', 'partially supported', 'insufficient evidence'];
+const VERDICTS: Verdict[] = ['supported', 'contradicted', 'partially-supported', 'insufficient-evidence'];
 export function asVerdict(raw: unknown, nSources: number) {
   const o = isObj(raw) ? raw : {};
   const v = str(o.verdict, 40).toLowerCase() as Verdict;
   return {
-    verdict: VERDICTS.includes(v) ? v : ('insufficient evidence' as Verdict),
+    verdict: VERDICTS.includes(v) ? v : ('insufficient-evidence' as Verdict),
     explanation: str(o.explanation, 900) || 'No explanation returned.',
     correction: str(o.correction, 600),
     supportingSources: (Array.isArray(o.supportingSources) ? o.supportingSources : [])

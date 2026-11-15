@@ -11,7 +11,7 @@ const CSS_TEXT = `
 .x{border:0;background:#f3f4f6;border-radius:8px;width:26px;height:26px;cursor:pointer;font-size:13px}.x:hover{background:#e5e7eb}
 blockquote{margin:0 0 10px;padding:8px 10px;background:#f9fafb;border-left:3px solid #d1d5db;border-radius:6px;font-style:italic}
 .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase}
-.contradicted{background:#dc2626}.partially{background:#ea580c}.insufficient{background:#6b7280}.supported{background:#16a34a}
+.contradicted{background:#dc2626}.partially-supported{background:#ea580c}.insufficient-evidence{background:#6b7280}.supported{background:#16a34a}
 p{margin:8px 0}.fix{background:#ecfdf5;border-radius:8px;padding:8px}
 ol{padding-left:18px;margin:8px 0}li{margin-bottom:8px}
 a{color:#2563eb;text-decoration:none;font-weight:600}a:hover{text-decoration:underline}
@@ -41,7 +41,7 @@ function ensure() {
   const st = document.createElement('style');
   st.textContent = CSS_TEXT;
   pill = h('div', { id: 'pill' });
-  card = h('div', { id: 'card', role: 'dialog', 'aria-label': 'FalseAlarm fact check', tabindex: '-1' });
+  card = h('div', { id: 'card', role: 'dialog', 'aria-label': 'falsealaram fact check', tabindex: '-1' });
   pill.hidden = card.hidden = true;
   root.append(st, pill, card);
   document.documentElement.appendChild(host);
@@ -51,7 +51,7 @@ export const isInside = (e: Event) => !!host && e.composedPath().includes(host);
 
 export function showProgress(p: Progress) {
   ensure();
-  pill.textContent = `FalseAlarm · ${p.message}`;
+  pill.textContent = `falsealaram · ${p.message}`;
   pill.className = p.stage === 'error' ? 'err' : '';
   pill.hidden = false;
   clearTimeout(hideT);
@@ -73,9 +73,11 @@ const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagatio
 function sourceItem(s: FactCheckResult['sources'][number], n: number, supports: boolean) {
   const url = safeUrl(s.url);
   const title = url ? h('a', { href: url, target: '_blank', rel: 'noopener noreferrer' }, s.title) : h('span', {}, s.title);
-  const who = s.authors.length > 3 ? `${s.authors.slice(0, 3).join(', ')} et al.` : s.authors.join(', ');
-  return h('li', {}, title, h('span', { class: 'tag' }, s.provider), supports && h('span', { class: 'tag' }, '✓ supports verdict'),
-    h('div', { class: 'meta' }, [who, s.year].filter(Boolean).join(' · ')), h('div', {}, s.summary ?? ''));
+  const providerLabels = { 'google-scholar': 'Google Scholar', 'semantic-scholar': 'Semantic Scholar', openalex: 'OpenAlex', none: 'No provider' };
+  const who = s.authors.split(', ').slice(0, 3).join(', ');
+  const authorText = s.authors.split(', ').length > 3 ? `${who} et al.` : who;
+  return h('li', {}, title, h('span', { class: 'tag' }, providerLabels[s.provider]), supports && h('span', { class: 'tag' }, '✓ supports verdict'),
+    h('div', { class: 'meta' }, [authorText, s.year].filter(Boolean).join(' · ')), h('div', {}, s.summary ?? s.abstract ?? ''));
 }
 
 function render(claim: Claim, r?: FactCheckResult) {
@@ -88,14 +90,16 @@ function render(claim: Claim, r?: FactCheckResult) {
     const ol = h('ol');
     r.sources.forEach((s, i) => ol.append(sourceItem(s, i + 1, r.supportingSources.includes(i + 1))));
     body = h('div', {},
-      h('span', { class: `badge ${r.verdict.split(' ')[0]}` }, r.verdict),
+      h('span', { class: `badge ${r.verdict}` }, r.verdict.replace(/-/g, ' ')),
       h('p', {}, r.explanation),
       r.correction && h('p', { class: 'fix' }, h('b', {}, 'Corrected info: '), r.correction),
-      r.sources.length ? h('div', { class: 'meta' }, 'Sources') : null, r.sources.length ? ol : null);
+      r.demoMode ? h('p', { class: 'meta' }, 'Demo result — built-in example; live scholarly lookup is used for sources.') : null,
+      r.sources.length ? h('div', { class: 'meta' }, 'Sources') : null, r.sources.length ? ol : null,
+      safeUrl(r.scholarUrl) && h('p', {}, h('a', { href: safeUrl(r.scholarUrl)!, target: '_blank', rel: 'noopener noreferrer' }, 'Search this claim on Google Scholar')));
   }
-  card.replaceChildren(h('div', { class: 'hd' }, h('span', { class: 'brand' }, 'FALSEALARM'), close),
+  card.replaceChildren(h('div', { class: 'hd' }, h('span', { class: 'brand' }, 'falsealaram'), close),
     h('blockquote', {}, claim.text), body,
-    h('div', { class: 'ft' }, 'AI-assisted result - may be wrong or incomplete. Verify with the cited sources.'));
+    h('div', { class: 'ft' }, 'AI-assisted results — verify with the sources before sharing.'));
   return close;
 }
 

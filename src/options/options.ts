@@ -20,11 +20,12 @@ $('save').onclick = async () => {
   for (const k of NUM) p[k] = Number($<HTMLInputElement>(k).value);
   for (const k of BOOL) p[k] = $<HTMLInputElement>(k).checked;
   p.blocklist = $<HTMLTextAreaElement>('blocklist').value.split('\n').map((x) => x.trim().toLowerCase()).filter(Boolean);
+  p.maxClaims = Math.max(1, Math.min(5, Number(p.maxClaims) || 5));
   await saveSettings(p as Partial<Settings>);
   msg('Saved ✔');
 };
 $('clear').onclick = async () => {
-  const keys = Object.keys(await chrome.storage.local.get(null)).filter((k) => k.startsWith('fl:'));
+  const keys = Object.keys(await chrome.storage.local.get(null)).filter((k) => k.startsWith('falsealaram:') || k.startsWith('fl:'));
   await chrome.storage.local.remove(keys);
   msg(`Cleared ${keys.length} cached results`);
 };

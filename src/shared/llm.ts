@@ -40,7 +40,7 @@ export async function grokGenerate(a: LLMArgs): Promise<string> {
     body: JSON.stringify({
       model: a.model, temperature: 0.1, stream: false,
       messages: [{ role: 'system', content: a.system }, { role: 'user', content: a.user }],
-      response_format: { type: 'json_schema', json_schema: { name: 'falsealarm', strict: true, schema: a.schema } },
+      response_format: { type: 'json_schema', json_schema: { name: 'falsealaram', strict: true, schema: a.schema } },
     }),
   }, { timeoutMs: 60000 });
   const j: any = await res.json();

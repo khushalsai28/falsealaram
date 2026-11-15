@@ -2,16 +2,17 @@ import type { Claim, FactCheckResult } from '../shared/types';
 import { foldChars, normalizeText } from '../shared/text';
 
 // CSS Custom Highlight API: paints ranges without touching the DOM or layout.
-type Kind = 'pending' | 'red' | 'orange' | 'none';
+type Kind = 'pending' | 'red' | 'orange' | 'gray' | 'none';
 export interface Entry { claim: Claim; range: Range; kind: Kind; result?: FactCheckResult }
 
 const entries = new Map<string, Entry>();
 let sets: Record<string, any> | null = null;
 let styleEl: HTMLStyleElement | null = null;
 const CSS_TEXT = `
-::highlight(falsealarm-red){background-color:rgba(220,38,38,.18);text-decoration:underline wavy #dc2626}
-::highlight(falsealarm-orange){background-color:rgba(234,88,12,.18);text-decoration:underline wavy #ea580c}
-::highlight(falsealarm-pending){text-decoration:underline dotted #9ca3af}`;
+::highlight(falsealaram-red){background-color:rgba(220,38,38,.18);text-decoration:underline wavy #dc2626}
+::highlight(falsealaram-orange){background-color:rgba(234,88,12,.18);text-decoration:underline wavy #ea580c}
+::highlight(falsealaram-gray){background-color:rgba(107,114,128,.14);text-decoration:underline dotted #6b7280}
+::highlight(falsealaram-pending){background-color:rgba(234,179,8,.18);text-decoration:underline dotted #ca8a04}`;
 
 export const supported = () => !!(CSS as any).highlights && 'Highlight' in globalThis;
 
@@ -21,9 +22,9 @@ function init() {
   styleEl.textContent = CSS_TEXT;
   document.head.appendChild(styleEl);
   sets = {};
-  for (const k of ['pending', 'red', 'orange']) {
+  for (const k of ['pending', 'red', 'orange', 'gray']) {
     sets[k] = new (globalThis as any).Highlight();
-    (CSS as any).highlights.set(`falsealarm-${k}`, sets[k]);
+    (CSS as any).highlights.set(`falsealaram-${k}`, sets[k]);
   }
 }
 
@@ -60,7 +61,9 @@ export function addPending(claim: Claim, nodes: Text[]): boolean {
 }
 
 const kindOf = (r: FactCheckResult): Kind =>
-  r.error ? 'pending' : r.verdict === 'contradicted' ? 'red' : r.verdict === 'supported' ? 'none' : 'orange';
+  r.error ? 'pending' : r.verdict === 'contradicted' ? 'red' :
+    r.verdict === 'partially-supported' ? 'orange' :
+      r.verdict === 'insufficient-evidence' ? 'gray' : 'none';
 
 export function resolve(r: FactCheckResult): Entry | undefined {
   const e = entries.get(r.claimId);
@@ -95,7 +98,7 @@ export function hitTest(x: number, y: number): Entry | null {
 export const count = () => entries.size;
 export function clear() {
   entries.clear();
-  if (sets) for (const k of Object.keys(sets)) (CSS as any).highlights.delete(`falsealarm-${k}`);
+  if (sets) for (const k of Object.keys(sets)) (CSS as any).highlights.delete(`falsealaram-${k}`);
   sets = null;
   styleEl?.remove();
   styleEl = null;
