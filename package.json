@@ -1,10 +1,11 @@
 {
   "name": "falsealaram",
   "private": true,
-  "version": "0.1.0",
+  "version": "2.0.1",
   "type": "module",
   "scripts": {
-    "build": "vite build && vite build --mode content && vite build --mode background",
+    "build": "vite build && vite build --mode content && vite build --mode background && node scripts/verify-dist.mjs",
+    "verify:dist": "node scripts/verify-dist.mjs",
     "proxy": "tsx proxy/server.ts",
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"

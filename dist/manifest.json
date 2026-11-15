@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "FalseAlarm",
-  "version": "0.1.0",
-  "description": "Highlights suspicious claims and shows sourced corrections. AI-assisted - verify results.",
+  "version": "2.0.1",
+  "description": "Researches factual questions with real sources and highlights questionable claims. AI-assisted results - verify before sharing.",
   "minimum_chrome_version": "110",
   "permissions": ["activeTab", "storage", "scripting", "tabs", "sidePanel"],
   "host_permissions": [
