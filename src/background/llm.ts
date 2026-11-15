@@ -36,21 +36,30 @@ function validAgainstSchema(value: unknown, schema: unknown): boolean {
 
 async function rawCall(kind: Kind, s: Settings, system: string, user: string, schema: object): Promise<string> {
   if (s.mode === 'proxy') {
-    const res = await fetchRetry(`${s.proxyUrl.replace(/\/$/, '')}/api/${kind}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-falsealaram-token': s.proxyToken },
-      body: JSON.stringify({ system, user, schema }),
-    }, { timeoutMs: 70000 });
+    let res: Response;
+    try {
+      res = await fetchRetry(`${s.proxyUrl.replace(/\/$/, '')}/api/${kind}`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-falsealaram-token': s.proxyToken },
+        body: JSON.stringify({ system, user, schema }),
+      }, { timeoutMs: 70000 });
+    } catch (e) {
+      if (e instanceof TypeError || /fetch failed|network/i.test(String((e as Error)?.message ?? e)))
+        throw new Error(`Could not reach the falsealaram proxy at ${s.proxyUrl}. Start it with npm run proxy.`);
+      throw e;
+    }
     const body: unknown = await res.json();
     if (!body || typeof body !== 'object' || typeof (body as Record<string, unknown>).text !== 'string')
       throw new Error(`Proxy returned an invalid ${kind} response.`);
     return (body as { text: string }).text;
   }
   const k = resolveKeys(s);
-  const apiKey = kind === 'gemini' ? k.gemini : k.grok;
-  if (!apiKey) throw new Error(`Missing ${kind === 'gemini' ? 'Gemini' : 'Grok'} API key - add it in falsealaram options.`);
-  return kind === 'gemini'
-    ? geminiGenerate({ apiKey, model: s.geminiModel, system, user, schema })
-    : grokGenerate({ apiKey, model: s.grokModel, system, user, schema });
+  // Gemini is the required live provider. Grok improves the final comparison when
+  // available, but a Gemini-only setup should still be able to fact-check a page.
+  if (kind === 'gemini' || !k.grok) {
+    if (!k.gemini) throw new Error('Missing Gemini API key - add it in falsealaram options.');
+    return geminiGenerate({ apiKey: k.gemini, model: s.geminiModel, system, user, schema });
+  }
+  return grokGenerate({ apiKey: k.grok, model: s.grokModel, system, user, schema });
 }
 
 /** Calls the model and returns parsed JSON; retries once if the output is malformed. */

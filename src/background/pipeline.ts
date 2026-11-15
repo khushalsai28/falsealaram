@@ -54,15 +54,15 @@ export async function runScan(tabId: number, req: ScanRequest): Promise<ScanSumm
   if (isBlockedUrl(req.pageUrl, s.blocklist)) return fail('Sensitive site (blocklist) - nothing was sent.');
   const keys = resolveKeys(s);
   const demoMode = s.mode === 'direct' && !keys.gemini && !keys.grok;
-  if (s.mode === 'direct' && !demoMode && (!keys.gemini || !keys.grok))
-    return fail('Add both Gemini and Grok API keys in falsealaram options, or clear both keys to use demo mode.');
+  if (s.mode === 'direct' && !demoMode && !keys.gemini)
+    return fail('Add a Gemini API key in falsealaram options, or clear both keys to use demo mode.');
   try {
-    progress(tabId, { stage: 'detecting', message: demoMode ? 'Demo mode: checking built-in examples…' : 'Scanning page for suspicious claims…' });
+    progress(tabId, { stage: 'detecting', message: demoMode ? 'Demo mode: checking built-in examples…' : 'Scanning page for checkable claims…' });
     const claims = demoMode
       ? await detectDemoClaims(req.chunks, Math.min(MAX_PAGE_CLAIMS, req.maxClaims))
       : await detectClaims(req.chunks, s, Math.min(MAX_PAGE_CLAIMS, req.maxClaims));
     if (!claims.length) {
-      const message = demoMode ? 'Demo mode: no built-in demo claims found.' : 'No suspicious claims found.';
+      const message = demoMode ? 'Demo mode: no built-in demo claims found.' : 'No claims met the current detection criteria.';
       progress(tabId, { stage: 'done', message });
       return { ok: true, claimsFound: 0, flagged: 0 };
     }
@@ -110,11 +110,14 @@ async function detectClaims(chunks: Chunk[], s: Settings, max: number): Promise<
     catch (e) { if (!found.length) throw e; break; } // keep partial results
     for (const r of asDetect(raw)) {
       const original = sourceText.get(r.chunkId), needle = normalizeText(r.text);
-      if (!original || needle.length < 15 || !original.includes(r.text) || r.confidence < s.confidenceThreshold || !r.keywords.length) continue;
+      const start = original ? normalizeText(original).indexOf(needle) : -1;
+      if (!original || needle.length < 15 || start < 0 || r.confidence < s.confidenceThreshold || !r.keywords.length) continue;
       const hash = await sha16(needle);
       if (hashes.has(hash)) continue;
       hashes.add(hash);
-      found.push({ id: '', hash, chunkId: r.chunkId, text: r.text, reason: r.reason, confidence: r.confidence, keywords: r.keywords });
+      // Store the page's own spelling and punctuation so highlighting still maps
+      // back to the original DOM, while allowing harmless model normalization.
+      found.push({ id: '', hash, chunkId: r.chunkId, text: original.slice(start, start + needle.length), reason: r.reason, confidence: r.confidence, keywords: r.keywords });
     }
   }
   return found.sort((a, b) => b.confidence - a.confidence).slice(0, Math.min(MAX_PAGE_CLAIMS, max)).map((c, i) => ({ ...c, id: `${c.chunkId}-${i}` }));

@@ -51,6 +51,9 @@ async function scan(manual: boolean) {
     })) as ScanSummary | undefined;
     if (!res) throw new Error('No response from falsealaram background.');
     if (!res.ok) for (const c of attempted) seen.delete(c.hash);
+    // A zero-result scan should be retryable after the user changes detection
+    // settings; otherwise the page remains permanently marked as already scanned.
+    if (res.ok && res.claimsFound === 0) for (const c of attempted) seen.delete(c.hash);
     claimsFound += res.claimsFound;
     if (!res.ok && res.error) status = res.error;
     startObserver();

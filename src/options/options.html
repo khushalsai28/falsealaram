@@ -9,19 +9,19 @@
 </style>
 <h1>falsealaram settings</h1>
 <label>Mode
-  <select id="mode"><option value="direct">Direct (dev - keys stored in this browser)</option><option value="proxy">Proxy (demo - keys on your server)</option></select></label>
+  <select id="mode"><option value="direct">Direct (keys stored in this browser)</option><option value="proxy">Proxy (keys on your server)</option></select></label>
 <label>Proxy URL <input id="proxyUrl"></label>
 <label>Proxy token <input id="proxyToken" type="password"></label>
 <label>Gemini API key <input id="geminiKey" type="password" autocomplete="off"></label>
-<label>Grok (xAI) API key <input id="grokKey" type="password" autocomplete="off"></label>
+<label>Grok (xAI) API key (optional) <input id="grokKey" type="password" autocomplete="off"></label>
 <label>OpenAlex API key (optional) <input id="openAlexKey" type="password" autocomplete="off"></label>
 <label>Gemini model <input id="geminiModel"></label>
 <label>Grok model <input id="grokModel"></label>
-<label>Confidence threshold (0-1) <input id="confidenceThreshold" type="number" step="0.05" min="0" max="1"></label>
+<label>Fact-check priority threshold (0-1) <input id="confidenceThreshold" type="number" step="0.05" min="0" max="1"></label>
 <label>Max claims per page (up to 5) <input id="maxClaims" type="number" min="1" max="5"></label>
 <label><input id="autoScan" type="checkbox"> Auto-scan pages</label>
 <label><input id="scholarEnabled" type="checkbox"> In proxy mode, try Google Scholar first (then Semantic Scholar and OpenAlex)</label>
 <label>Blocked domains (one per line) <textarea id="blocklist" rows="6"></textarea></label>
 <button id="save">Save</button><button id="clear">Clear result cache</button> <span id="msg"></span>
-<p><small>Keys are stored in chrome.storage.local (unencrypted, on this device). Use proxy mode for anything beyond a demo. With no Direct-mode keys, falsealaram uses built-in demo claims and live scholarly search. Page text is sent to Google (Gemini) and source summaries to xAI - never on blocklisted/sensitive pages.</small></p>
+<p><small>Keys are stored in chrome.storage.local (unencrypted, on this device). Gemini is required for live Direct-mode checks; Grok is optional and Gemini is used for comparisons when it is blank. With no Direct-mode keys, falsealaram uses built-in demo claims and live scholarly search. Page text is never sent on blocklisted or sensitive pages.</small></p>
 <script type="module" src="./options.ts"></script>

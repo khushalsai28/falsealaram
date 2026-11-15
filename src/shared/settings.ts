@@ -7,7 +7,7 @@ export const DEFAULTS: Settings = {
   proxyUrl: 'http://localhost:8787', proxyToken: '',
   geminiKey: '', grokKey: '', openAlexKey: '',
   geminiModel: 'gemini-3.5-flash-lite', grokModel: 'grok-4.7',
-  confidenceThreshold: 0.6, maxClaims: 5, scholarEnabled: true, blocklist: DEFAULT_BLOCKLIST,
+  confidenceThreshold: 0.45, maxClaims: 5, scholarEnabled: true, blocklist: DEFAULT_BLOCKLIST,
 };
 export async function getSettings(): Promise<Settings> {
   const { settings } = await chrome.storage.local.get('settings');

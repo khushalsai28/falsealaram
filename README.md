@@ -24,23 +24,25 @@ judgments. Opinions and jokes on the page are intentionally not included.
 
 ## API modes
 
-- **Direct** sends page text to Gemini for claim detection and comparison data
-  to Grok. Keys are stored in the browser's `chrome.storage.local`.
+- **Direct** stores keys in the browser's `chrome.storage.local`. Gemini is
+  required for live checks; Grok is optional and Gemini performs the final
+  comparison when Grok is not configured.
 - **Proxy** sends model requests to the configured Node server. Keep API keys
   on the server in environment variables; never commit them.
 - Google Scholar scraping is a proxy-only best-effort attempt. Semantic
   Scholar is tried next, followed by OpenAlex.
 
 For the local proxy, copy `proxy/.env.example` to `.env` in the project root,
-then set `GEMINI_API_KEY`, `GROK_API_KEY`, and optionally
-`OPENALEX_API_KEY` and `PROXY_TOKEN` before running:
+then set `GEMINI_API_KEY` (or the legacy `gemini_token`), plus optionally
+`GROK_API_KEY`, `OPENALEX_API_KEY`, and `PROXY_TOKEN` before running:
 
 ```powershell
 npm run proxy
 ```
 
-The extension's proxy URL defaults to `http://localhost:8787`. Use the same
-proxy token in the server environment and falsealaram Options when configured.
+The extension's proxy URL defaults to `http://localhost:8787`. Start the proxy
+before selecting Proxy mode, and use the same proxy token in the server
+environment and falsealaram Options when configured.
 
 ## Safety and limits
 
