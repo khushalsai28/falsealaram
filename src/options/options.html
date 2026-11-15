@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>FalseAlarm settings</title>
+<style>
+  body{font:14px system-ui;max-width:640px;margin:32px auto;padding:0 16px}
+  label{display:block;margin:12px 0 4px;font-weight:600}
+  input,select,textarea{width:100%;padding:6px;box-sizing:border-box}
+  input[type=checkbox]{width:auto}button{margin:16px 8px 0 0;padding:8px 14px}small{color:#666}
+</style>
+<h1>FalseAlarm settings</h1>
+<label>Mode
+  <select id="mode"><option value="direct">Direct (dev - keys stored in this browser)</option><option value="proxy">Proxy (demo - keys on your server)</option></select></label>
+<label>Proxy URL <input id="proxyUrl"></label>
+<label>Proxy token <input id="proxyToken" type="password"></label>
+<label>Gemini API key <input id="geminiKey" type="password" autocomplete="off"></label>
+<label>Grok (xAI) API key <input id="grokKey" type="password" autocomplete="off"></label>
+<label>OpenAlex API key (optional) <input id="openAlexKey" type="password" autocomplete="off"></label>
+<label>Gemini model <input id="geminiModel"></label>
+<label>Grok model <input id="grokModel"></label>
+<label>Confidence threshold (0-1) <input id="confidenceThreshold" type="number" step="0.05" min="0" max="1"></label>
+<label>Max claims per page <input id="maxClaims" type="number" min="1" max="10"></label>
+<label><input id="autoScan" type="checkbox"> Auto-scan pages</label>
+<label><input id="scholarEnabled" type="checkbox"> Try Google Scholar first (falls back to OpenAlex)</label>
+<label>Blocked domains (one per line) <textarea id="blocklist" rows="6"></textarea></label>
+<button id="save">Save</button><button id="clear">Clear result cache</button> <span id="msg"></span>
+<p><small>Keys are stored in chrome.storage.local (unencrypted, on this device). Use proxy mode for anything beyond a demo. Page text is sent to Google (Gemini) and source summaries to xAI - never on blocklisted/sensitive pages.</small></p>
+<script type="module" src="./options.ts"></script>

@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  body{font:13px system-ui;width:280px;margin:0;padding:14px}
+  h1{font-size:15px;margin:0 0 10px;color:#4f46e5}
+  .row{display:flex;justify-content:space-between;align-items:center;margin:8px 0}
+  button{width:100%;padding:8px;border:0;border-radius:8px;background:#4f46e5;color:#fff;font-weight:600;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  #status{color:#374151;margin:10px 0;min-height:32px}
+  small{color:#6b7280;display:block;margin-top:8px}
+  a{color:#2563eb;cursor:pointer}
+</style>
+<h1>FalseAlarm</h1>
+<div class="row"><label for="enabled">Enabled</label><input type="checkbox" id="enabled"></div>
+<button id="scan">Scan this page</button>
+<div id="status">…</div>
+<a id="settings">Settings / API keys</a>
+<small>AI-assisted results - always verify with the cited sources.</small>
+<script type="module" src="./popup.ts"></script>
