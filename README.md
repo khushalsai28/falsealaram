@@ -27,7 +27,7 @@ any result.
 
 The toolbar popup also opens a side-panel research agent for a factual question.
 It plans searches, uses the same Scholar/OpenAlex→Wikipedia/DuckDuckGo fallback
-policy as page scans, reads public source pages, verifies quoted evidence, and
+policy as page scans, reads the public source pages, verifies quoted evidence, and
 returns an evidence-based finding. Direct research needs Gemini; Grok is used for
 the final screening when configured and Gemini is the fallback otherwise.
 
