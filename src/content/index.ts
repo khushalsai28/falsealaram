@@ -100,6 +100,18 @@ chrome.runtime.onMessage.addListener((msg: ToContent, _s, send) => {
       break;
     }
     case 'POPUP_SCAN': void scan(true); send({ ok: true }); break;
+    case 'CLEAR':
+      // Keep the extension active, but remove painted ranges and forget the
+      // in-page scan budget so the user can deliberately run a fresh scan.
+      hl.clear();
+      claims.clear();
+      refs.clear();
+      seen.clear();
+      claimsFound = 0;
+      status = 'Highlights cleared.';
+      ui.showProgress({ stage: 'done', message: status });
+      send({ ok: true });
+      break;
     case 'GET_STATUS':
       send({ enabled: active, blocked: S ? blockedReason() : null, status, claims: claimsFound } satisfies StatusResponse); break;
   }

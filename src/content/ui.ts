@@ -11,7 +11,7 @@ const CSS_TEXT = `
 .x{border:0;background:#f3f4f6;border-radius:8px;width:26px;height:26px;cursor:pointer;font-size:13px}.x:hover{background:#e5e7eb}
 blockquote{margin:0 0 10px;padding:8px 10px;background:#f9fafb;border-left:3px solid #d1d5db;border-radius:6px;font-style:italic}
 .badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:700;color:#fff;text-transform:uppercase}
-.contradicted{background:#dc2626}.partially-supported{background:#ea580c}.insufficient-evidence{background:#6b7280}.supported{background:#16a34a}
+.contradicted{background:#dc2626}.partially_supported{background:#ea580c}.insufficient_evidence{background:#6b7280}.supported{background:#16a34a}
 p{margin:8px 0}.fix{background:#ecfdf5;border-radius:8px;padding:8px}
 ol{padding-left:18px;margin:8px 0}li{margin-bottom:8px}
 a{color:#2563eb;text-decoration:none;font-weight:600}a:hover{text-decoration:underline}
@@ -73,11 +73,14 @@ const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.stopPropagatio
 function sourceItem(s: FactCheckResult['sources'][number], n: number, supports: boolean) {
   const url = safeUrl(s.url);
   const title = url ? h('a', { href: url, target: '_blank', rel: 'noopener noreferrer' }, s.title) : h('span', {}, s.title);
-  const providerLabels = { 'google-scholar': 'Google Scholar', 'semantic-scholar': 'Semantic Scholar', openalex: 'OpenAlex', none: 'No provider' };
+  const providerLabels: Record<string, string> = {
+    'google-scholar': 'Google Scholar', 'semantic-scholar': 'Semantic Scholar', openalex: 'OpenAlex', none: 'No provider',
+    Wikipedia: 'Wikipedia', 'Semantic Scholar': 'Semantic Scholar', OpenAlex: 'OpenAlex', 'Google Scholar': 'Google Scholar', None: 'No provider',
+  };
   const who = s.authors.split(', ').slice(0, 3).join(', ');
   const authorText = s.authors.split(', ').length > 3 ? `${who} et al.` : who;
   return h('li', {}, title, h('span', { class: 'tag' }, providerLabels[s.provider]), supports && h('span', { class: 'tag' }, '✓ supports verdict'),
-    h('div', { class: 'meta' }, [authorText, s.year].filter(Boolean).join(' · ')), h('div', {}, s.summary ?? s.abstract ?? ''));
+    h('div', { class: 'meta' }, [authorText, s.year].filter(Boolean).join(' · ')), h('div', {}, s.summary ?? s.snippet ?? s.abstract ?? ''));
 }
 
 function render(claim: Claim, r?: FactCheckResult) {
@@ -90,7 +93,7 @@ function render(claim: Claim, r?: FactCheckResult) {
     const ol = h('ol');
     r.sources.forEach((s, i) => ol.append(sourceItem(s, i + 1, r.supportingSources.includes(i + 1))));
     body = h('div', {},
-      h('span', { class: `badge ${r.verdict}` }, r.verdict.replace(/-/g, ' ')),
+      h('span', { class: `badge ${r.verdict}` }, r.verdict.replace(/_/g, ' ')),
       h('p', {}, r.explanation),
       r.correction && h('p', { class: 'fix' }, h('b', {}, 'Corrected info: '), r.correction),
       r.demoMode ? h('p', { class: 'meta' }, 'Demo result — built-in example; live scholarly lookup is used for sources.') : null,

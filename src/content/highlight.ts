@@ -62,8 +62,8 @@ export function addPending(claim: Claim, nodes: Text[]): boolean {
 
 const kindOf = (r: FactCheckResult): Kind =>
   r.error ? 'pending' : r.verdict === 'contradicted' ? 'red' :
-    r.verdict === 'partially-supported' ? 'orange' :
-      r.verdict === 'insufficient-evidence' ? 'gray' : 'none';
+    r.verdict === 'partially_supported' ? 'orange' :
+      r.verdict === 'insufficient_evidence' ? 'gray' : 'none';
 
 export function resolve(r: FactCheckResult): Entry | undefined {
   const e = entries.get(r.claimId);

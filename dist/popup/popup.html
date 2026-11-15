@@ -1,21 +1,28 @@
 <!doctype html>
-<script type="module" crossorigin src="../assets/popup-SnAbgtaC.js"></script>
-<link rel="modulepreload" crossorigin href="../assets/settings-BATEfMU5.js">
+<script type="module" crossorigin src="../assets/popup-DJvUfVrW.js"></script>
+<link rel="modulepreload" crossorigin href="../assets/modulepreload-polyfill-B5Qt9EMX.js">
+<link rel="modulepreload" crossorigin href="../assets/settings-CejvWf7R.js">
 
 <meta charset="utf-8">
 <style>
-  body{font:13px system-ui;width:280px;margin:0;padding:14px}
-  h1{font-size:15px;margin:0 0 10px;color:#4f46e5}
-  .row{display:flex;justify-content:space-between;align-items:center;margin:8px 0}
-  button{width:100%;padding:8px;border:0;border-radius:8px;background:#4f46e5;color:#fff;font-weight:600;cursor:pointer}
-  button:disabled{opacity:.5;cursor:default}
-  #status{color:#374151;margin:10px 0;min-height:32px}
-  small{color:#6b7280;display:block;margin-top:8px}
-  a{color:#2563eb;cursor:pointer}
+  :root{color:#172033;background:#fff;font:13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif}
+  body{width:300px;margin:0;padding:14px;box-sizing:border-box}
+  h1{font-size:16px;margin:0 0 12px;color:#4338ca}.row{display:flex;justify-content:space-between;align-items:center;margin:10px 0}
+  button{width:100%;padding:8px 10px;border:0;border-radius:8px;background:#4f46e5;color:#fff;font:inherit;font-weight:650;cursor:pointer}
+  button:hover{background:#4338ca}button:disabled{opacity:.5;cursor:default}.secondary{margin-top:7px;background:#eef2ff;color:#3730a3}.secondary:hover{background:#e0e7ff}
+  #status{color:#475569;margin:10px 0;min-height:34px}.divider{border:0;border-top:1px solid #e5e7eb;margin:14px 0}
+  textarea{width:100%;min-height:60px;box-sizing:border-box;resize:vertical;border:1px solid #cbd5e1;border-radius:8px;padding:8px;font:inherit}
+  label[for=query]{display:block;font-weight:650;margin:0 0 6px}.linkButton{width:auto;border:0;padding:0;background:none;color:#2563eb;font:inherit;cursor:pointer;text-align:left}.linkButton:hover{background:none;text-decoration:underline}
+  small{color:#6b7280;display:block;margin-top:12px}
 </style>
-<h1>falsealaram</h1>
-<div class="row"><label for="enabled">Enabled</label><input type="checkbox" id="enabled"></div>
+<h1>FalseAlarm</h1>
+<div class="row"><label for="enabled">Highlight checks</label><input type="checkbox" id="enabled"></div>
 <button id="scan">Scan this page</button>
-<div id="status">…</div>
-<a id="settings">Settings / API keys</a>
-<small>AI-assisted results — verify with the sources before sharing.</small>
+<button id="clear" class="secondary">Clear highlights</button>
+<div id="status" role="status">Loading…</div>
+<hr class="divider">
+<label for="query">Ask the research agent</label>
+<textarea id="query" maxlength="1000" placeholder="Ask a factual question…"></textarea>
+<button id="ask" class="secondary">Ask in side panel</button>
+<button id="settings" class="linkButton">Settings / API keys</button>
+<small>AI-assisted results — verify with the sources before sharing.</small>

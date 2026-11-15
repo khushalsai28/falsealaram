@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'node:path';
 
-// Three builds: (default) popup+options HTML + static files, then content & background as
+// Three builds: (default) popup + options + agent HTML and static files, then content & background as
 // self-contained IIFE bundles (content scripts cannot use ES-module imports).
 export default defineConfig(({ mode }) => {
   const r = (p: string) => resolve(__dirname, p);
@@ -19,7 +19,13 @@ export default defineConfig(({ mode }) => {
     root: r('src'), base: './', publicDir: r('public'), envDir: __dirname,
     build: {
       outDir: r('dist'), emptyOutDir: true, target: 'chrome110',
-      rollupOptions: { input: { popup: r('src/popup/popup.html'), options: r('src/options/options.html') } },
+      rollupOptions: {
+        input: {
+          popup: r('src/popup/popup.html'),
+          options: r('src/options/options.html'),
+          agent: r('src/agent/index.html'),
+        },
+      },
     },
   };
 });

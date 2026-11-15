@@ -2,7 +2,7 @@ import type { Chunk, Claim, FactCheckResult, Progress, ScanRequest, ScanSummary,
 import { getSettings } from '../shared/settings';
 import { isBlockedUrl } from '../shared/blocklist';
 import { normalizeText, sha16 } from '../shared/text';
-import { asDetect, asSummaries, asVerdict } from '../shared/json';
+import { asDetect, asSummariesByUrl, asVerdict } from '../shared/json';
 import { describeError, fetchRetry } from '../shared/net';
 import { CMP_SCHEMA, CMP_SYSTEM, DETECT_SCHEMA, DETECT_SYSTEM, SUM_SCHEMA, SUM_SYSTEM } from '../shared/prompts';
 import { callLLM } from './llm';
@@ -33,7 +33,7 @@ const DEMO_CLAIMS = [
     pattern: /drinking coffee causes cancer/i,
     reason: 'This overstates evidence that varies by cancer type and exposure.',
     keywords: ['coffee consumption', 'cancer risk', 'epidemiology'],
-    verdict: 'partially-supported' as const,
+    verdict: 'partially_supported' as const,
     explanation: 'Research does not support a blanket claim that drinking coffee causes cancer. Evidence differs by cancer type, and very hot beverages are a separate exposure associated with esophageal cancer risk.',
     correction: 'Coffee itself is not established as a general cause of cancer; temperature and specific cancer outcomes matter when interpreting the evidence.',
   },
@@ -72,13 +72,13 @@ export async function runScan(tabId: number, req: ScanRequest): Promise<ScanSumm
     tick();
     await pool(claims, CONCURRENCY, async (c) => {
       const result = await checkClaim(c, s, demoMode).catch((e): FactCheckResult => ({
-        claimId: c.id, claimHash: c.hash, claimText: c.text, verdict: 'insufficient-evidence',
+        claimId: c.id, claimHash: c.hash, claimText: c.text, verdict: 'insufficient_evidence',
         explanation: `Could not complete this check: ${describeError(e)}`, correction: '', supportingSources: [],
         sources: [], scholarUrl: scholarUrl(c.text), checkedAt: Date.now(), error: describeError(e), demoMode,
       }));
       done++;
       if (result.verdict === 'contradicted') { flagged++; contradicted++; }
-      if (result.verdict === 'partially-supported' || result.verdict === 'insufficient-evidence') needsContext++;
+      if (result.verdict === 'partially_supported' || result.verdict === 'insufficient_evidence') needsContext++;
       send(tabId, { type: 'CLAIM_RESULT', payload: { result } });
       tick();
     });
@@ -179,17 +179,28 @@ async function checkClaim(c: Claim, s: Settings, demoMode: boolean): Promise<Fac
       correction: example.correction, supportingSources: [], sources,
     };
   } else if (!sources.length) {
-    result = { ...base, verdict: 'insufficient-evidence', explanation: 'No scholarly sources were found for this claim.', correction: '', supportingSources: [], sources: [] };
+    result = { ...base, verdict: 'insufficient_evidence', explanation: 'No retrieved sources addressed this claim.', correction: '', supportingSources: [], sources: [] };
   } else {
-    // one batched Gemini call summarizes all sources (saves quota)
-    const sums = asSummaries(await callLLM('gemini', s, SUM_SYSTEM, JSON.stringify({
-      claim: c.text, sources: sources.map((x, i) => ({ n: i + 1, title: x.title, year: x.year, abstract: x.abstract.slice(0, 1500) })),
+    // One batched Gemini call summarizes source snippets. v3 identifies summaries
+    // by their URL so a model cannot silently attach prose to a different source.
+    const sums = asSummariesByUrl(await callLLM('gemini', s, SUM_SYSTEM, JSON.stringify({
+      claim: c.text,
+      sources: sources.map((x) => ({ url: x.url, title: x.title, year: x.year, snippet: (x.snippet ?? x.abstract ?? '').slice(0, 1500) })),
     }), SUM_SCHEMA));
-    sources = sources.map((x, i) => ({ ...x, summary: sums.get(i + 1) || 'No summary available.' }));
-    const v = asVerdict(await callLLM('grok', s, CMP_SYSTEM, JSON.stringify({
-      claim: c.text, sources: sources.map((x, i) => ({ n: i + 1, title: x.title, year: x.year, provider: x.provider, summary: x.summary })),
-    }), CMP_SCHEMA), sources.length);
-    result = { ...base, ...v, sources };
+    sources = sources.map((x) => ({ ...x, summary: sums.get(x.url) || 'This source does not address the claim.' }));
+    const comparison = await callLLM('grok', s, CMP_SYSTEM, JSON.stringify({
+      claim: c.text,
+      sources: sources.map((x) => ({ url: x.url, title: x.title, year: x.year, provider: x.provider, summary: x.summary })),
+    }), CMP_SCHEMA);
+    const v = asVerdict(comparison, sources.length);
+    const candidateUrls = comparison && typeof comparison === 'object'
+      ? (comparison as { supportingSourceUrls?: unknown }).supportingSourceUrls : undefined;
+    const supportingUrls = Array.isArray(candidateUrls)
+      ? new Set(candidateUrls.filter((url): url is string => typeof url === 'string')) : new Set<string>();
+    const supportingSources = supportingUrls.size
+      ? sources.flatMap((source, index) => supportingUrls.has(source.url) ? [index + 1] : [])
+      : v.supportingSources;
+    result = { ...base, ...v, supportingSources, sources };
   }
   await chrome.storage.local.set({ [key]: result });
   if (Math.random() < 0.1) void prune();
