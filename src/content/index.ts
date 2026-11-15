@@ -13,15 +13,34 @@ const refs = new Map<string, ChunkRef>();       // chunkId -> DOM refs for the c
 const claims = new Map<string, Claim>();
 const dirty = new Set<Element>();               // roots added by MutationObserver
 
+function visiblePassword(): boolean {
+  const nodes = document.querySelectorAll('input[type="password"], input[autocomplete~="current-password"], input[autocomplete~="new-password"]');
+  for (const node of nodes) {
+    if (!(node instanceof HTMLElement)) continue;
+    const box = node.getBoundingClientRect();
+    if (box.width < 2 || box.height < 2) continue;
+    if (node.closest('[hidden], [aria-hidden="true"]')) continue;
+    const style = getComputedStyle(node);
+    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) continue;
+    return true;
+  }
+  return false;
+}
+
 function blockedReason(): string | null {
   if (chrome.extension?.inIncognitoContext) return 'Disabled in incognito windows.';
   if (isBlockedUrl(location.href, S.blocklist)) return 'Sensitive site (blocklist) - falsealaram is off here.';
-  if (document.querySelector('input[type="password"], input[autocomplete~="current-password"], input[autocomplete~="new-password"]')) return 'Page has a password field - skipped for safety.';
+  // Hidden login widgets are common on articles. Only a password field the reader can use should stop a scan.
+  if (visiblePassword()) return 'Page has a password field - skipped for safety.';
   return null;
 }
 
 async function scan(manual: boolean) {
-  if (scanning || !active) return;
+  if (!active) return;
+  if (scanning) {
+    if (manual) ui.showProgress({ stage: 'detecting', message: status || 'Already scanning this page…' });
+    return;
+  }
   const why = blockedReason();
   if (why) { status = why; if (manual) ui.showProgress({ stage: 'error', message: why }); return; }
   const limit = Math.min(MAX_PAGE_CLAIMS, S.maxClaims);
@@ -29,6 +48,8 @@ async function scan(manual: boolean) {
   if (budget <= 0) { status = `Claim limit (${limit}) reached`; if (manual) ui.showProgress({ stage: 'done', message: status }); return; }
 
   scanning = true;
+  status = 'Reading this page…';
+  if (manual) ui.showProgress({ stage: 'detecting', message: status });
   let attempted: ChunkRef[] = [];
   try {
     const roots = manual || !dirty.size ? [document.body] : [...dirty];
@@ -44,7 +65,13 @@ async function scan(manual: boolean) {
       picked.push(c); chars += c.text.length; seen.add(c.hash); refs.set(c.id, c);
     }
     attempted = picked;
-    if (!picked.length) { if (manual) ui.showProgress({ stage: 'done', message: 'No new text to scan.' }); return; }
+    if (!picked.length) {
+      status = 'No new text to scan.';
+      if (manual) ui.showProgress({ stage: 'done', message: status });
+      return;
+    }
+    status = 'Checking this page for suspicious claims…';
+    ui.showProgress({ stage: 'detecting', message: status });
 
     const res = (await chrome.runtime.sendMessage({
       type: 'SCAN_REQUEST', payload: { pageUrl: location.href, chunks: picked.map(({ id, text }) => ({ id, text })), maxClaims: budget },
@@ -53,14 +80,16 @@ async function scan(manual: boolean) {
     if (!res.ok) for (const c of attempted) seen.delete(c.hash);
     claimsFound += res.claimsFound;
     if (!res.ok && res.error) status = res.error;
-    startObserver();
+    // Follow newly added text only when the reader asked for automatic scans.
+    // Otherwise a busy page (Wikipedia, news sites) retriggers extract forever and the popup stays on "Starting…".
+    if (S.autoScan) startObserver();
   } catch (e) {
     for (const c of attempted) seen.delete(c.hash);
     const m = /context invalidated|Receiving end/i.test(String((e as Error).message)) ? 'falsealaram was updated - reload this tab.' : (e as Error).message;
     status = m; ui.showProgress({ stage: 'error', message: m });
   } finally {
     scanning = false;
-    if (dirty.size) schedule();
+    if (S.autoScan && dirty.size) schedule();
   }
 }
 
@@ -72,7 +101,8 @@ function startObserver() {
       const el = n.nodeType === 1 ? (n as Element) : n.nodeType === 3 ? n.parentElement : null;
       if (el) dirty.add(el);
     }
-    if (dirty.size > 200) { dirty.clear(); dirty.add(document.body); }
+    // A mutation burst is not a request to read the whole article again.
+    if (dirty.size > 80) { dirty.clear(); return; }
     if (dirty.size) schedule();
   });
   observer.observe(document.body, { childList: true, subtree: true }); // our UI lives on <html>, not <body>
@@ -96,7 +126,13 @@ chrome.runtime.onMessage.addListener((msg: ToContent, _s, send) => {
       if (e) ui.updateCard(e.claim, msg.payload.result);
       break;
     }
-    case 'POPUP_SCAN': void scan(true); send({ ok: true }); break;
+    case 'POPUP_SCAN':
+      // Reply before extract(). Otherwise a large page blocks this listener, the popup
+      // never leaves "Starting…", and every later status poll queues behind the same work.
+      if (active && !scanning) status = 'Reading this page…';
+      send({ ok: true });
+      setTimeout(() => { void scan(true); }, 0);
+      break;
     case 'GET_STATUS':
       send({ enabled: active, blocked: S ? blockedReason() : null, status, claims: claimsFound } satisfies StatusResponse); break;
   }

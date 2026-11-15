@@ -1,6 +1,7 @@
 import type { Chunk, Claim, FactCheckResult, Progress, ScanRequest, ScanSummary, Settings, Source, ToContent } from '../shared/types';
 import { getSettings } from '../shared/settings';
 import { isBlockedUrl } from '../shared/blocklist';
+import { findLocalClaims, quoteInText } from '../shared/claims';
 import { normalizeText, sha16 } from '../shared/text';
 import { asDetect, asSummaries, asVerdict } from '../shared/json';
 import { describeError, fetchRetry } from '../shared/net';
@@ -59,11 +60,10 @@ export async function runScan(tabId: number, req: ScanRequest): Promise<ScanSumm
   try {
     progress(tabId, { stage: 'detecting', message: demoMode ? 'Demo mode: checking built-in examples…' : 'Scanning page for suspicious claims…' });
     const claims = demoMode
-      ? await detectDemoClaims(req.chunks, Math.min(MAX_PAGE_CLAIMS, req.maxClaims))
+      ? await detectOfflineClaims(req.chunks, Math.min(MAX_PAGE_CLAIMS, req.maxClaims))
       : await detectClaims(req.chunks, s, Math.min(MAX_PAGE_CLAIMS, req.maxClaims));
     if (!claims.length) {
-      const message = demoMode ? 'Demo mode: no built-in demo claims found.' : 'No suspicious claims found.';
-      progress(tabId, { stage: 'done', message });
+      progress(tabId, { stage: 'done', message: 'No suspicious claims found.' });
       return { ok: true, claimsFound: 0, flagged: 0 };
     }
     claims.forEach((claim) => send(tabId, { type: 'CLAIM_PENDING', payload: { claim } }));
@@ -110,7 +110,7 @@ async function detectClaims(chunks: Chunk[], s: Settings, max: number): Promise<
     catch (e) { if (!found.length) throw e; break; } // keep partial results
     for (const r of asDetect(raw)) {
       const original = sourceText.get(r.chunkId), needle = normalizeText(r.text);
-      if (!original || needle.length < 15 || !original.includes(r.text) || r.confidence < s.confidenceThreshold || !r.keywords.length) continue;
+      if (!original || !quoteInText(original, r.text) || r.confidence < s.confidenceThreshold || !r.keywords.length) continue;
       const hash = await sha16(needle);
       if (hashes.has(hash)) continue;
       hashes.add(hash);
@@ -138,6 +138,22 @@ async function detectDemoClaims(chunks: Chunk[], max: number): Promise<Claim[]> 
     }
   }
   return found.slice(0, Math.min(MAX_PAGE_CLAIMS, max));
+}
+
+/** Built-in examples keep their prepared verdicts. Other checkable sentences are flagged locally. */
+async function detectOfflineClaims(chunks: Chunk[], max: number): Promise<Claim[]> {
+  const found = await detectDemoClaims(chunks, max);
+  if (found.length >= max) return found.slice(0, max);
+  const skip = new Set(found.map((claim) => normalizeText(claim.text)));
+  for (const item of findLocalClaims(chunks, max - found.length, skip)) {
+    const hash = await sha16(normalizeText(item.text));
+    if (found.some((claim) => claim.hash === hash)) continue;
+    found.push({
+      id: `${item.chunkId}-${found.length}`, hash, chunkId: item.chunkId, text: item.text,
+      reason: item.reason, confidence: 0.7, keywords: item.keywords,
+    });
+  }
+  return found.slice(0, max);
 }
 
 const scholarUrl = (claim: string) => `https://scholar.google.com/scholar?q=${encodeURIComponent(claim)}`;
@@ -169,12 +185,19 @@ async function checkClaim(c: Claim, s: Settings, demoMode: boolean): Promise<Fac
   let result: FactCheckResult;
   if (demoMode) {
     const example = DEMO_CLAIMS.find((item) => item.pattern.test(c.text));
-    if (!example) throw new Error('No built-in demo result is available for this claim.');
-    result = {
-      ...base, verdict: example.verdict,
-      explanation: `Demo mode: ${example.explanation}${sourceError ? ` Scholarly sources could not be loaded: ${sourceError}` : ''}`,
-      correction: example.correction, supportingSources: [], sources,
-    };
+    result = example
+      ? {
+        ...base, verdict: example.verdict,
+        explanation: `Demo mode: ${example.explanation}${sourceError ? ` Scholarly sources could not be loaded: ${sourceError}` : ''}`,
+        correction: example.correction, supportingSources: [], sources,
+      }
+      : {
+        ...base, demoMode: false, verdict: 'insufficient-evidence',
+        explanation: sources.length
+          ? 'Checked without model keys. These scholarly sources were retrieved for this statement; read them before treating it as settled.'
+          : `Checked without model keys. No scholarly sources were found for this statement.${sourceError ? ` ${sourceError}` : ''}`,
+        correction: '', supportingSources: [], sources,
+      };
   } else if (!sources.length) {
     result = { ...base, verdict: 'insufficient-evidence', explanation: 'No scholarly sources were found for this claim.', correction: '', supportingSources: [], sources: [] };
   } else {

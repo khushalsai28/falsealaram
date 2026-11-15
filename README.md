@@ -18,9 +18,9 @@ unpacked**, and choose the generated `dist` folder.
 
 Open `test/demo.html` (or `dist/demo-test-page.html` after building), open the
 falsealaram toolbar popup, and select **Scan this page**. With both Direct-mode
-model keys empty, falsealaram uses its three built-in demo claims and attempts live
-Semantic Scholar/OpenAlex source lookup. Demo verdicts are examples, not model
-judgments. Opinions and jokes on the page are intentionally not included.
+model keys empty, the three built-in demo claims get example verdicts, and other
+checkable statements on the page are flagged for a live Semantic Scholar/OpenAlex
+lookup. Example verdicts are not model judgments. Opinions and jokes are skipped.
 
 ## API modes
 
