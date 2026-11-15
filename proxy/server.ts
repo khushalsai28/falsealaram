@@ -7,7 +7,7 @@ import { searchSources } from '../src/background/providers';
 const app = express();
 // Only the extension (chrome-extension:// origin) or non-browser clients may call this.
 app.use(cors({ origin: (o, cb) => cb(null, !o || o.startsWith('chrome-extension://')) }));
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '3mb' }));
 app.use('/api', (req, res, next) => {
   const t = process.env.PROXY_TOKEN;
   if (t && req.header('x-falsealarm-token') !== t) return res.status(401).json({ error: 'Bad proxy token' });

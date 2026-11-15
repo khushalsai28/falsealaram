@@ -31,12 +31,14 @@ function init() {
 function locate(nodes: Text[], claim: string): Range | null {
   let s = '';
   const map: { n: Text; o: number }[] = [];
+  const push = (n: Text, o: number, ch: string) => { s += ch; map.push({ n, o }); };
   for (const n of nodes) {
-    if (!n.isConnected) continue;
+    if (!n.isConnected || !n.data) continue;
+    if (s && !s.endsWith(' ') && !/^\s/.test(n.data)) push(n, 0, ' ');
     for (let i = 0; i < n.data.length; i++) {
       const ch = n.data[i];
-      if (/\s/.test(ch)) { if (!s || s.endsWith(' ')) continue; s += ' '; } else s += ch;
-      map.push({ n, o: i });
+      if (/\s/.test(ch)) { if (s && !s.endsWith(' ')) push(n, i, ' '); }
+      else push(n, i, ch);
     }
   }
   const q = normalizeText(claim);
@@ -92,6 +94,7 @@ export function hitTest(x: number, y: number): Entry | null {
   return null;
 }
 
+export const flagged = () => [...entries.values()].filter((e) => (e.kind === 'red' || e.kind === 'orange') && e.result);
 export const count = () => entries.size;
 export function clear() {
   entries.clear();

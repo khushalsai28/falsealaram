@@ -1,5 +1,5 @@
 export type Verdict = 'supported' | 'contradicted' | 'partially supported' | 'insufficient evidence';
-export type ProviderName = 'Google Scholar' | 'OpenAlex';
+export type ProviderName = 'Google Scholar' | 'OpenAlex' | 'Web' | 'Grok';
 
 export interface Chunk { id: string; text: string }
 export interface Claim {
@@ -10,6 +10,8 @@ export interface Claim {
 export interface Source {
   title: string; authors: string[]; year: number | null; url: string; abstract: string;
   provider: ProviderName; summary?: string;
+  /** 0-1, how established the outlet is. Modest scores are still usable. */
+  reliability?: number;
 }
 export interface FactCheckResult {
   claimId: string; claimHash: string; claimText: string; verdict: Verdict;

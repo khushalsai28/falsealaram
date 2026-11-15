@@ -2,15 +2,15 @@ import type { Chunk, Claim, FactCheckResult, Progress, ScanRequest, ScanSummary,
 import { getSettings } from '../shared/settings';
 import { isBlockedUrl } from '../shared/blocklist';
 import { normalizeText, sha16 } from '../shared/text';
-import { asDetect, asSummaries, asVerdict } from '../shared/json';
+import { asDetect, asGrokCheck, asSummaries, asVerdict } from '../shared/json';
 import { describeError, fetchRetry } from '../shared/net';
-import { CMP_SCHEMA, CMP_SYSTEM, DETECT_SCHEMA, DETECT_SYSTEM, SUM_SCHEMA, SUM_SYSTEM } from '../shared/prompts';
+import { CMP_SCHEMA, CMP_SYSTEM, DETECT_SCHEMA, DETECT_SYSTEM, GROK_SCHEMA, GROK_SYSTEM, SUM_SCHEMA, SUM_SYSTEM } from '../shared/prompts';
 import { callLLM } from './llm';
 import { resolveKeys } from './config';
-import { searchSources } from './providers';
+import { reliabilityOf, searchSources } from './providers';
 
 const PREFIX = 'fl:v1:', TTL = 7 * 864e5, MAX_CACHE = 300;
-const MAX_CHUNK = 1500, BATCH_CHARS = 12000, MAX_BATCHES = 45, CONCURRENCY = 2;
+const MAX_CHUNK = 15000, BATCH_CHARS = 30000, MAX_BATCHES = 45, CONCURRENCY = 4;
 
 const send = (tabId: number, msg: ToContent) => chrome.tabs.sendMessage(tabId, msg).catch(() => undefined);
 const progress = (tabId: number, p: Progress) => send(tabId, { type: 'PROGRESS', payload: p });
@@ -69,20 +69,21 @@ async function detectClaims(chunks: Chunk[], s: Settings, max: number): Promise<
   if (cur.length) batches.push(cur);
 
   const found: Claim[] = [], hashes = new Set<string>();
-  for (const b of batches.slice(0, MAX_BATCHES)) {
+  let firstError: unknown;
+  await pool(batches.slice(0, MAX_BATCHES), 3, async (b) => {
     let raw: unknown;
     try { raw = await callLLM('gemini', s, DETECT_SYSTEM, JSON.stringify(b), DETECT_SCHEMA); }
-    catch (e) { if (!found.length) throw e; break; } // keep partial results
+    catch (e) { if (!firstError) firstError = e; return; }
     for (const r of asDetect(raw)) {
       const hay = norm.get(r.chunkId), needle = normalizeText(r.text);
-      // guard against hallucinated / non-verbatim claims (they could not be highlighted)
-      if (!hay || needle.length < 15 || !hay.includes(needle) || r.confidence < s.confidenceThreshold || !r.keywords.length) continue;
+      if (!hay || needle.length < 8 || !hay.includes(needle) || r.confidence < s.confidenceThreshold || !r.keywords.length) continue;
       const hash = await sha16(needle);
       if (hashes.has(hash)) continue;
       hashes.add(hash);
       found.push({ id: '', hash, chunkId: r.chunkId, text: r.text, reason: r.reason, confidence: r.confidence, keywords: r.keywords });
     }
-  }
+  });
+  if (!found.length && firstError) throw firstError;
   return found.sort((a, b) => b.confidence - a.confidence).slice(0, max).map((c, i) => ({ ...c, id: `${c.chunkId}-${i}` }));
 }
 
@@ -97,27 +98,43 @@ async function retrieve(c: Claim, s: Settings): Promise<Source[]> {
   return searchSources(c.keywords, { scholar: s.scholarEnabled, openAlexKey: resolveKeys(s).openAlex, limit: 3 });
 }
 
+async function judge(c: Claim, s: Settings, sources: Source[], base: Pick<FactCheckResult, 'claimId' | 'claimHash' | 'claimText' | 'checkedAt'>): Promise<FactCheckResult> {
+  if (!sources.length) {
+    return { ...base, verdict: 'insufficient evidence', explanation: 'No sources were found for this claim.', correction: '', supportingSources: [], sources: [] };
+  }
+  const sums = asSummaries(await callLLM('gemini', s, SUM_SYSTEM, JSON.stringify({
+    claim: c.text, sources: sources.map((x, i) => ({ n: i + 1, title: x.title, year: x.year, reliability: x.reliability ?? 0.5, abstract: x.abstract.slice(0, 2200) })),
+  }), SUM_SCHEMA));
+  sources = sources.map((x, i) => ({ ...x, summary: sums.get(i + 1) || 'No summary available.' }));
+  if (sources.every((x) => /does not directly address the claim|no abstract available|no summary available/i.test(x.summary ?? ''))) {
+    return { ...base, verdict: 'insufficient evidence', explanation: 'Retrieved sources do not address this claim.', correction: '', supportingSources: [], sources };
+  }
+  const v = asVerdict(await callLLM('grok', s, CMP_SYSTEM, JSON.stringify({
+    claim: c.text, sources: sources.map((x, i) => ({ n: i + 1, title: x.title, year: x.year, provider: x.provider, reliability: x.reliability ?? 0.5, summary: x.summary })),
+  }), CMP_SCHEMA), sources.length);
+  return { ...base, ...v, sources };
+}
+
+async function grokDirect(c: Claim, s: Settings, base: Pick<FactCheckResult, 'claimId' | 'claimHash' | 'claimText' | 'checkedAt'>): Promise<FactCheckResult> {
+  const g = asGrokCheck(await callLLM('grok', s, GROK_SYSTEM, JSON.stringify({ claim: c.text }), GROK_SCHEMA));
+  const sources: Source[] = g.sources.map((x) => ({
+    title: x.title, authors: [], year: null, url: x.url, abstract: x.summary, summary: x.summary,
+    provider: 'Grok', reliability: reliabilityOf(x.url),
+  }));
+  return { ...base, verdict: g.verdict, explanation: g.explanation, correction: g.correction, supportingSources: g.supportingSources, sources };
+}
+
 async function checkClaim(c: Claim, s: Settings): Promise<FactCheckResult> {
   const key = PREFIX + c.hash;
   const hit = (await chrome.storage.local.get(key))[key] as FactCheckResult | undefined;
   if (hit && Date.now() - hit.checkedAt < TTL) return { ...hit, claimId: c.id };
 
   const base = { claimId: c.id, claimHash: c.hash, claimText: c.text, checkedAt: Date.now() };
-  let sources = await retrieve(c, s);
-  let result: FactCheckResult;
-  if (!sources.length) {
-    result = { ...base, verdict: 'insufficient evidence', explanation: 'No scholarly sources were found for this claim.', correction: '', supportingSources: [], sources: [] };
-  } else {
-    // one batched Gemini call summarizes all sources (saves quota)
-    const sums = asSummaries(await callLLM('gemini', s, SUM_SYSTEM, JSON.stringify({
-      claim: c.text, sources: sources.map((x, i) => ({ n: i + 1, title: x.title, year: x.year, abstract: x.abstract.slice(0, 1500) })),
-    }), SUM_SCHEMA));
-    sources = sources.map((x, i) => ({ ...x, summary: sums.get(i + 1) || 'No summary available.' }));
-    const v = asVerdict(await callLLM('grok', s, CMP_SYSTEM, JSON.stringify({
-      claim: c.text, sources: sources.map((x, i) => ({ n: i + 1, title: x.title, year: x.year, provider: x.provider, summary: x.summary })),
-    }), CMP_SCHEMA), sources.length);
-    result = { ...base, ...v, sources };
-  }
+  const sources = await retrieve(c, s);
+  let result = await judge(c, s, sources, base);
+  const misses = !result.sources.length || result.sources.every((x) =>
+    /does not directly address the claim|no abstract available|no summary available/i.test(x.summary ?? ''));
+  if (misses) result = await grokDirect(c, s, base);
   await chrome.storage.local.set({ [key]: result });
   if (Math.random() < 0.1) void prune();
   return result;

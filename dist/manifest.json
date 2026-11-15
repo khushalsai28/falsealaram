@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "FalseAlarm",
   "version": "0.1.0",
-  "description": "Highlights suspicious claims and shows scholarly corrections. AI-assisted - verify results.",
+  "description": "Highlights suspicious claims and shows sourced corrections. AI-assisted - verify results.",
   "minimum_chrome_version": "110",
   "permissions": ["storage"],
   "host_permissions": [
@@ -10,6 +10,8 @@
     "https://api.x.ai/*",
     "https://api.openalex.org/*",
     "https://scholar.google.com/*",
+    "https://en.wikipedia.org/*",
+    "https://html.duckduckgo.com/*",
     "http://localhost:8787/*"
   ],
   "background": { "service_worker": "background.js" },
