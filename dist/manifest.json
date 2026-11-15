@@ -2,14 +2,16 @@
   "manifest_version": 3,
   "name": "falsealaram",
   "version": "0.1.0",
-  "description": "falsealaram highlights questionable claims and links to scholarly sources. AI-assisted results — verify before sharing.",
+  "description": "Highlights suspicious claims and shows sourced corrections. AI-assisted - verify results.",
   "minimum_chrome_version": "110",
   "permissions": ["activeTab", "storage", "scripting"],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
     "https://api.x.ai/*",
     "https://api.openalex.org/*",
-    "https://api.semanticscholar.org/*",
+    "https://scholar.google.com/*",
+    "https://en.wikipedia.org/*",
+    "https://html.duckduckgo.com/*",
     "http://localhost:8787/*"
   ],
   "background": { "service_worker": "background.js" },
