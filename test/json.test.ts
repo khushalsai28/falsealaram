@@ -24,10 +24,19 @@ test('does not evaluate malformed model output', () => {
 });
 
 test('migrates only the obsolete default model names in saved extension settings', () => {
-  const migrated = normalizeSettings({ geminiModel: 'gemini-3.5-flash-lite', grokModel: 'grok-4.7' });
-  assert.equal(migrated.geminiModel, 'gemini-2.0-flash');
-  assert.equal(migrated.grokModel, 'grok-4');
-  const custom = normalizeSettings({ geminiModel: 'my-approved-model', grokModel: 'another-model' });
-  assert.equal(custom.geminiModel, 'my-approved-model');
-  assert.equal(custom.grokModel, 'another-model');
+  const firstLegacy = normalizeSettings({ geminiModel: 'gemini-3.5-flash-lite', grokModel: 'grok-4.7' });
+  assert.equal(firstLegacy.geminiModel, 'gemini-3.6-flash');
+  assert.equal(firstLegacy.grokModel, 'grok-4');
+
+  const retired = normalizeSettings({ geminiModel: 'gemini-2.0-flash', grokModel: 'grok-4' });
+  assert.equal(retired.geminiModel, 'gemini-3.6-flash');
+  assert.equal(retired.grokModel, 'grok-4');
+
+  const custom = normalizeSettings({ geminiModel: 'gemini-2.5-flash', grokModel: 'grok-4.1-fast' });
+  assert.equal(custom.geminiModel, 'gemini-2.5-flash');
+  assert.equal(custom.grokModel, 'grok-4.1-fast');
+
+  const blank = normalizeSettings({ geminiModel: ' ', grokModel: '' });
+  assert.equal(blank.geminiModel, 'gemini-3.6-flash');
+  assert.equal(blank.grokModel, 'grok-4');
 });

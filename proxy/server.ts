@@ -5,6 +5,7 @@ import { runAgent, type AgentModelClient } from '../src/lib/agent';
 import { defaultProviders, tryProvidersInOrder } from '../src/lib/providers';
 import { fetchPageText } from '../src/lib/web';
 import { geminiGenerate, grokGenerate } from '../src/shared/llm';
+import { DEFAULT_GEMINI_MODEL, DEFAULT_GROK_MODEL, normalizeGeminiModel, normalizeGrokModel } from '../src/shared/models';
 import { searchSources } from '../src/background/providers';
 
 const app = express();
@@ -13,8 +14,10 @@ const MAX_QUERY_LENGTH = 1_000;
 const MAX_CONTEXT_LENGTH = 4_000;
 
 const geminiKey = () => process.env.GEMINI_API_KEY || process.env.gemini_token;
-const geminiModel = () => process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-const grokModel = () => process.env.GROK_MODEL || 'grok-4';
+// Normalization also repairs an existing proxy .env that contains the prior
+// FalseAlarm default, without reading or changing any key material.
+const geminiModel = () => normalizeGeminiModel(process.env.GEMINI_MODEL ?? DEFAULT_GEMINI_MODEL);
+const grokModel = () => normalizeGrokModel(process.env.GROK_MODEL ?? DEFAULT_GROK_MODEL);
 
 function badRequest(message: string): Error & { status: number } {
   return Object.assign(new Error(message), { status: 400 });
