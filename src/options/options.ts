@@ -20,7 +20,7 @@ $('save').onclick = async () => {
   for (const k of NUM) p[k] = Number($<HTMLInputElement>(k).value);
   for (const k of BOOL) p[k] = $<HTMLInputElement>(k).checked;
   p.blocklist = $<HTMLTextAreaElement>('blocklist').value.split('\n').map((x) => x.trim().toLowerCase()).filter(Boolean);
-  p.maxClaims = Math.max(1, Math.min(5, Number(p.maxClaims) || 5));
+  p.maxClaims = Math.max(1, Math.min(20, Number(p.maxClaims) || 12));
   await saveSettings(p as Partial<Settings>);
   msg('Saved ✔');
 };
