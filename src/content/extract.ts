@@ -8,6 +8,7 @@ const SKIP = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'NAV', 'FOOTER'
 const ROLES = new Set(['navigation', 'contentinfo', 'complementary', 'dialog']);
 const AD = /(^|[\s_-])(ads?|advert(isement)?|sponsored|cookie|consent|newsletter|promo)($|[\s_-])/i;
 const MIN_WORDS = 3, MAX_CHARS = 15000;
+const INLINE = new Set(['A', 'ABBR', 'B', 'BDI', 'BDO', 'BIG', 'BR', 'CITE', 'CODE', 'DATA', 'DFN', 'EM', 'FONT', 'I', 'KBD', 'MARK', 'NOBR', 'Q', 'RP', 'RT', 'RUBY', 'S', 'SAMP', 'SMALL', 'SPAN', 'STRONG', 'SUB', 'SUP', 'TIME', 'TT', 'U', 'VAR', 'WBR']);
 
 function skippable(e: Element): boolean {
   if (e.id === HOST_ID || SKIP.has(e.tagName.toUpperCase())) return true;
@@ -17,15 +18,22 @@ function skippable(e: Element): boolean {
   return AD.test(`${e.id} ${typeof e.className === 'string' ? e.className : ''}`);
 }
 
-// Nearest non-inline ancestor = the "paragraph" the text belongs to (cached per element).
 const blockCache = new WeakMap<Element, Element>();
 function blockOf(el: Element): Element {
   let b = blockCache.get(el);
   if (b) return b;
   let cur = el;
-  while (cur.parentElement && cur !== document.body && /^(inline|contents)$/.test(getComputedStyle(cur).display)) cur = cur.parentElement;
+  while (cur.parentElement && cur !== document.body && INLINE.has(cur.tagName)) cur = cur.parentElement;
   blockCache.set(el, cur);
   return cur;
+}
+
+function hidden(el: Element): boolean {
+  if (!(el instanceof HTMLElement) || el === document.body) return false;
+  if (el.hidden || el.getAttribute('aria-hidden') === 'true' || el.closest('[hidden],[aria-hidden="true"]')) return true;
+  if (el.offsetParent !== null) return false;
+  const position = getComputedStyle(el).position;
+  return position !== 'fixed' && position !== 'sticky';
 }
 
 let seq = 0;
@@ -84,7 +92,7 @@ export function extract(root: Element, seen: Set<string>): ChunkRef[] {
       list ? list.push(n as Text) : groups.set(b, [n as Text]);
     }
     for (const [el, nodes] of groups) {
-      if ((el as any).checkVisibility?.({ checkOpacity: true, checkVisibilityCSS: true, contentVisibilityAuto: false }) === false) continue;
+      if (hidden(el) || (el as any).checkVisibility?.({ checkOpacity: true, checkVisibilityCSS: true, contentVisibilityAuto: false }) === false) continue;
       for (const text of pieces(joinNodes(nodes))) {
         if (text.split(' ').length < MIN_WORDS) continue;
         const hash = hash32(text);

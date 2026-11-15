@@ -9,7 +9,7 @@
 </style>
 <h1>FalseAlarm settings</h1>
 <label>Mode
-  <select id="mode"><option value="direct">Direct (dev - keys stored in this browser)</option><option value="proxy">Proxy (demo - keys on your server)</option></select></label>
+  <select id="mode"><option value="direct">Direct (keys stored in this browser)</option><option value="proxy">Proxy (keys on your server)</option></select></label>
 <label>Proxy URL <input id="proxyUrl"></label>
 <label>Proxy token <input id="proxyToken" type="password"></label>
 <label>Gemini API key <input id="geminiKey" type="password" autocomplete="off"></label>
@@ -23,5 +23,5 @@
 <label><input id="scholarEnabled" type="checkbox"> Try Google Scholar first (then OpenAlex, then the web)</label>
 <label>Blocked domains (one per line) <textarea id="blocklist" rows="6"></textarea></label>
 <button id="save">Save</button><button id="clear">Clear result cache</button> <span id="msg"></span>
-<p><small>Keys are stored in chrome.storage.local (unencrypted, on this device). Use proxy mode for anything beyond a demo. Page text is sent to Google (Gemini) and source summaries to xAI - never on blocklisted/sensitive pages. If scholarly search finds nothing, lookups continue on Wikipedia and DuckDuckGo. If those sources do not address the claim, Grok judges it and names the sources it used.</small></p>
+<p><small>Direct mode requires Gemini and Grok keys, stored in chrome.storage.local (unencrypted, on this device). In proxy mode, keys stay on your server. Page text is sent to Google (Gemini) and source summaries to xAI - never on blocklisted/sensitive pages. If scholarly search finds nothing, lookups continue on Wikipedia and DuckDuckGo. If those sources do not address the claim, Grok judges it and names the sources it used.</small></p>
 <script type="module" src="./options.ts"></script>

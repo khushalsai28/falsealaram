@@ -14,15 +14,33 @@ const refs = new Map<string, ChunkRef>();       // chunkId -> DOM refs for the c
 const claims = new Map<string, Claim>();
 const dirty = new Set<Element>();               // roots added by MutationObserver
 
+function visiblePassword(): boolean {
+  const nodes = document.querySelectorAll('input[type="password"], input[autocomplete~="current-password"], input[autocomplete~="new-password"]');
+  for (const node of nodes) {
+    if (!(node instanceof HTMLElement)) continue;
+    const box = node.getBoundingClientRect();
+    if (box.width < 2 || box.height < 2) continue;
+    if (node.closest('[hidden], [aria-hidden="true"]')) continue;
+    const style = getComputedStyle(node);
+    if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity) === 0) continue;
+    return true;
+  }
+  return false;
+}
+
 function blockedReason(): string | null {
   if (chrome.extension?.inIncognitoContext) return 'Disabled in incognito windows.';
   if (isBlockedUrl(location.href, S.blocklist)) return 'Sensitive site (blocklist) - FalseAlarm is off here.';
-  if (document.querySelector('input[type="password"]')) return 'Page has a password field - skipped for safety.';
+  if (visiblePassword()) return 'Page has a password field - skipped for safety.';
   return null;
 }
 
 async function scan(manual: boolean) {
-  if (scanning || !active) return;
+  if (!active) return;
+  if (scanning) {
+    if (manual) ui.showProgress({ stage: 'detecting', message: status || 'Already scanning this page…' });
+    return;
+  }
   const why = blockedReason();
   if (why) { status = why; if (manual) ui.showProgress({ stage: 'error', message: why }); return; }
   const budget = S.maxClaims - claimsFound;
@@ -30,8 +48,10 @@ async function scan(manual: boolean) {
 
   if (!manual && Date.now() < retryAt) { arm(retryAt - Date.now()); return; }
   scanning = true;
+  status = 'Reading this page…';
+  if (manual) ui.showProgress({ stage: 'detecting', message: status });
   try {
-    startObserver();
+    if (S.autoScan) startObserver();
     const roots = manual || !dirty.size ? [document.body] : [...dirty];
     dirty.clear(); refs.clear();
     const pool = new Map<string, ChunkRef>();
@@ -44,8 +64,14 @@ async function scan(manual: boolean) {
       if (chars + c.text.length > MAX_CHARS) continue;
       picked.push(c); chars += c.text.length; refs.set(c.id, c);
     }
-    if (!picked.length) { if (manual) ui.showProgress({ stage: 'done', message: 'No new text to scan.' }); return; }
+    if (!picked.length) {
+      status = 'No new text to scan.';
+      if (manual) ui.showProgress({ stage: 'done', message: status });
+      return;
+    }
 
+    status = 'Checking this page for suspicious claims…';
+    ui.showProgress({ stage: 'detecting', message: status });
     const res = (await chrome.runtime.sendMessage({
       type: 'SCAN_REQUEST', payload: { pageUrl: location.href, chunks: picked.map(({ id, text }) => ({ id, text })), maxClaims: budget },
     })) as ScanSummary | undefined;
@@ -60,7 +86,7 @@ async function scan(manual: boolean) {
     ui.showProgress({ stage: 'error', message: m });
   } finally {
     scanning = false;
-    if (dirty.size) arm(Math.max(DEBOUNCE, retryAt - Date.now()));
+    if (S.autoScan && dirty.size) arm(Math.max(DEBOUNCE, retryAt - Date.now()));
   }
 }
 
@@ -103,7 +129,7 @@ function startObserver() {
         if (el) dirty.add(el);
       }
     }
-    if (dirty.size > 200) { dirty.clear(); dirty.add(document.body); }
+    if (dirty.size > 80) { dirty.clear(); clearTimeout(timer); return; }
     if (dirty.size) schedule();
   });
   observer.observe(document.body, { childList: true, subtree: true, characterData: true });
@@ -131,7 +157,11 @@ chrome.runtime.onMessage.addListener((msg: ToContent, _s, send) => {
       if (e) ui.updateCard(e.claim, msg.payload.result);
       break;
     }
-    case 'POPUP_SCAN': void scan(true); send({ ok: true }); break;
+    case 'POPUP_SCAN':
+      if (active && !scanning) status = 'Reading this page…';
+      send({ ok: true });
+      setTimeout(() => { void scan(true); }, 0);
+      break;
     case 'GET_STATUS':
       send({ enabled: active, blocked: S ? blockedReason() : null, status, claims: claimsFound } satisfies StatusResponse); break;
   }

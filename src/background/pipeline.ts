@@ -1,6 +1,7 @@
 import type { Chunk, Claim, FactCheckResult, Progress, ScanRequest, ScanSummary, Settings, Source, ToContent } from '../shared/types';
 import { getSettings } from '../shared/settings';
 import { isBlockedUrl } from '../shared/blocklist';
+import { quoteInText } from '../shared/claims';
 import { normalizeText, sha16 } from '../shared/text';
 import { asDetect, asGrokCheck, asSummaries, asVerdict } from '../shared/json';
 import { describeError, fetchRetry } from '../shared/net';
@@ -76,7 +77,7 @@ async function detectClaims(chunks: Chunk[], s: Settings, max: number): Promise<
     catch (e) { if (!firstError) firstError = e; return; }
     for (const r of asDetect(raw)) {
       const hay = norm.get(r.chunkId), needle = normalizeText(r.text);
-      if (!hay || needle.length < 8 || !hay.includes(needle) || r.confidence < s.confidenceThreshold || !r.keywords.length) continue;
+      if (!hay || !quoteInText(hay, r.text) || r.confidence < s.confidenceThreshold || !r.keywords.length) continue;
       const hash = await sha16(needle);
       if (hashes.has(hash)) continue;
       hashes.add(hash);

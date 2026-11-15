@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "falsealaram",
+  "name": "FalseAlarm",
   "version": "0.1.0",
   "description": "Highlights suspicious claims and shows sourced corrections. AI-assisted - verify results.",
   "minimum_chrome_version": "110",
-  "permissions": ["activeTab", "storage", "scripting"],
+  "permissions": ["storage"],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
     "https://api.x.ai/*",
@@ -16,6 +16,6 @@
   ],
   "background": { "service_worker": "background.js" },
   "content_scripts": [{ "matches": ["http://*/*", "https://*/*"], "js": ["content.js"], "run_at": "document_idle" }],
-  "action": { "default_popup": "popup/popup.html", "default_title": "falsealaram" },
+  "action": { "default_popup": "popup/popup.html", "default_title": "FalseAlarm" },
   "options_ui": { "page": "options/options.html", "open_in_tab": true }
 }
