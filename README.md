@@ -17,14 +17,24 @@ unpacked**, and choose the generated `dist` folder.
 ## Demo
 
 Open `test/demo.html` (or `dist/demo-test-page.html` after building), open the
-FalseAlarm toolbar popup, and select **Scan this page**. Direct mode requires
-Gemini and Grok API keys in Options; alternatively, configure and start the proxy
-server. Check the linked sources before relying on any result.
+FalseAlarm toolbar popup, and select **Scan this page**. The resulting
+**Flagged on this page** list jumps to each false, misleading, or unsure claim.
+Direct page scans require Gemini and Grok API keys in Options; alternatively,
+configure and start the proxy server. Check the linked sources before relying on
+any result.
+
+## Research agent
+
+The toolbar popup also opens a side-panel research agent for a factual question.
+It plans searches, uses the same Scholar/OpenAlex→Wikipedia/DuckDuckGo fallback
+policy as page scans, reads public source pages, verifies quoted evidence, and
+returns an evidence-based finding. Direct research needs Gemini; Grok is used for
+the final screening when configured and Gemini is the fallback otherwise.
 
 ## API modes
 
-- **Direct** requires Gemini and Grok API keys, stored in the browser's
-  `chrome.storage.local`.
+- **Direct** page scans require Gemini and Grok API keys, stored in the
+  browser's `chrome.storage.local`. The research agent can run with Gemini only.
 - **Proxy** sends model requests to the configured Node server. Keep API keys
   on the server in environment variables; never commit them.
 - Source search uses Google Scholar when enabled, then OpenAlex. Wikipedia and
@@ -46,6 +56,8 @@ environment and falsealaram Options when configured.
 ## Safety and limits
 
 - The claim limit is configurable (default 12, maximum 20).
+- Retired built-in model defaults are upgraded automatically; custom model names
+  are retained.
 - Banking, email, login/account/checkout pages, password-field pages, and
   incognito contexts are skipped.
 - Claim results are cached locally for seven days.

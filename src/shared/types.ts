@@ -1,5 +1,5 @@
 export type Verdict = 'supported' | 'contradicted' | 'partially supported' | 'insufficient evidence';
-export type ProviderName = 'Google Scholar' | 'OpenAlex' | 'Web' | 'Grok';
+export type ProviderName = 'Google Scholar' | 'Semantic Scholar' | 'OpenAlex' | 'Wikipedia' | 'DuckDuckGo' | 'Web' | 'Grok';
 
 export interface Chunk { id: string; text: string }
 export interface Claim {
@@ -12,6 +12,10 @@ export interface Source {
   provider: ProviderName; summary?: string;
   /** 0-1, how established the outlet is. Modest scores are still usable. */
   reliability?: number;
+  /** Search-result prose used by the research agent before it reads a page. */
+  snippet?: string;
+  /** Public page text read by the research agent; never model-generated. */
+  pageText?: string;
 }
 export interface FactCheckResult {
   claimId: string; claimHash: string; claimText: string; verdict: Verdict;
@@ -33,10 +37,34 @@ export interface ScanSummary { ok: boolean; claimsFound: number; flagged: number
 export interface Progress { stage: 'detecting' | 'checking' | 'done' | 'error'; message: string }
 export interface StatusResponse { enabled: boolean; blocked: string | null; status: string; claims: number }
 
-export type ToBackground = { type: 'SCAN_REQUEST'; payload: ScanRequest };
+export interface AgentStep { label: string; detail: string }
+export interface AgentQuote { text: string; url: string }
+export interface AgentResult {
+  query: string;
+  answer: string;
+  /** Uses the same four canonical scan verdicts as page checks. */
+  verdict: Verdict;
+  explanation: string;
+  correctedInfo: string;
+  sources: Source[];
+  quotes: AgentQuote[];
+  steps: AgentStep[];
+  confidence: number;
+  error?: string;
+}
+
+export type ToBackground =
+  | { type: 'SCAN_REQUEST'; payload: ScanRequest }
+  | { type: 'AGENT_ASK'; query: string; pageContext?: string; tabId?: number }
+  | { type: 'AGENT_GET_RUN'; tabId?: number }
+  | { type: 'AGENT_OPEN'; url: string }
+  | { type: 'AGENT_GOTO'; url: string };
 export type ToContent =
   | { type: 'PROGRESS'; payload: Progress }
   | { type: 'CLAIM_PENDING'; payload: { claim: Claim } }
   | { type: 'CLAIM_RESULT'; payload: { result: FactCheckResult } }
   | { type: 'POPUP_SCAN' }
-  | { type: 'GET_STATUS' };
+  | { type: 'GET_STATUS' }
+  | { type: 'CLEAR' }
+  | { type: 'AGENT_PROGRESS'; status: string; step: AgentStep }
+  | { type: 'AGENT_RESULT'; result: AgentResult };

@@ -164,6 +164,16 @@ chrome.runtime.onMessage.addListener((msg: ToContent, _s, send) => {
       break;
     case 'GET_STATUS':
       send({ enabled: active, blocked: S ? blockedReason() : null, status, claims: claimsFound } satisfies StatusResponse); break;
+    case 'CLEAR':
+      refs.clear();
+      claims.clear();
+      seen.clear();
+      claimsFound = 0;
+      hl.clear();
+      ui.closeCard();
+      status = 'Highlights cleared.';
+      send({ ok: true });
+      break;
   }
 });
 

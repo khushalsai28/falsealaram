@@ -9,7 +9,10 @@
    - Open the linked sources and compare them with the claim.
    - Show how the explanation distinguishes insufficient evidence from a
      contradicted claim.
-4. **Trust rule (10 seconds):** Emphasize that results are AI-assisted and the
+   - Open **Flagged on this page** and jump to a flagged claim.
+4. **Research agent (20 seconds):** Ask a factual question in the popup. Show
+   the side-panel search trace, evidence quotes, sources, and final finding.
+5. **Trust rule (10 seconds):** Emphasize that results are AI-assisted and the
    sources should be checked before sharing.
 
 Source search and model responses depend on external services and may be

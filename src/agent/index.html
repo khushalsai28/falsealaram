@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FalseAlarm research agent</title>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="header">
+        <div>
+          <p class="eyebrow">FALSEALARM</p>
+          <h1>Research agent</h1>
+        </div>
+        <p class="subtitle">Searches, opens, and reads sources before it answers.</p>
+      </header>
+
+      <form id="research-form" class="ask" novalidate>
+        <label for="question">Ask a factual question</label>
+        <textarea id="question" maxlength="1000" placeholder="For example: Do humans only use 10% of their brain?" required></textarea>
+        <div class="actions">
+          <button id="ask" type="submit">Ask FalseAlarm</button>
+          <button id="page-context" type="button" class="secondary">Ask about this page</button>
+          <button id="settings" type="button" class="secondary">Configure research</button>
+        </div>
+      </form>
+
+      <p id="status" class="status" role="status" aria-live="polite">Ready to research.</p>
+
+      <section class="trace-section" aria-labelledby="trace-heading">
+        <div class="section-heading">
+          <h2 id="trace-heading">Agent trace</h2>
+          <span id="trace-state" class="trace-state">Waiting</span>
+        </div>
+        <ol id="trace" class="trace" aria-live="polite"></ol>
+      </section>
+
+      <section id="answer-card" class="answer-card" hidden aria-live="polite">
+        <div class="answer-header">
+          <span id="claim-index" class="claim-index">Claim 1</span>
+          <span id="verdict" class="verdict"></span>
+          <span id="confidence" class="confidence"></span>
+        </div>
+        <p class="claim-heading">Factual question / claim</p>
+        <p id="claim-text" class="claim-text"></p>
+        <p id="finding" class="finding"></p>
+        <h2 id="answer-title">Answer</h2>
+        <p id="answer" class="answer"></p>
+        <p id="explanation" class="explanation"></p>
+        <p id="correction" class="correction" hidden></p>
+
+        <section id="quotes-section" hidden aria-labelledby="quotes-heading">
+          <h3 id="quotes-heading">Verbatim quotes</h3>
+          <div id="quotes" class="quotes"></div>
+        </section>
+
+        <section id="sources-section" hidden aria-labelledby="sources-heading">
+          <h3 id="sources-heading">Sources</h3>
+          <ol id="sources" class="sources"></ol>
+        </section>
+
+        <p class="disclaimer">AI-assisted results — verify with the sources before sharing.</p>
+      </section>
+    </main>
+    <script type="module" src="./agent.ts"></script>
+  </body>
+</html>
