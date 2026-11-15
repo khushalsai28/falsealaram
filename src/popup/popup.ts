@@ -19,13 +19,7 @@ async function refresh() {
 }
 getSettings().then((s) => (enabled.checked = s.enabled));
 enabled.onchange = async () => { await saveSettings({ enabled: enabled.checked }); setTimeout(refresh, 200); };
-scanBtn.onclick = async () => {
-  statusEl.textContent = 'Starting…';
-  const id = await tabId();
-  if (id == null) return;
-  await chrome.tabs.sendMessage(id, { type: 'POPUP_SCAN' }).catch(() => undefined);
-  await refresh();
-};
+scanBtn.onclick = async () => { statusEl.textContent = 'Starting…'; await chrome.tabs.sendMessage((await tabId())!, { type: 'POPUP_SCAN' }).catch(() => undefined); };
 $('settings').onclick = () => chrome.runtime.openOptionsPage();
 refresh();
 setInterval(refresh, 1000);

@@ -17,19 +17,20 @@ unpacked**, and choose the generated `dist` folder.
 ## Demo
 
 Open `test/demo.html` (or `dist/demo-test-page.html` after building), open the
-FalseAlarm toolbar popup, and select **Scan this page**. Direct mode requires
-Gemini and Grok API keys in Options; alternatively, configure and start the proxy
-server. Check the linked sources before relying on any result.
+falsealaram toolbar popup, and select **Scan this page**. With both Direct-mode
+model keys empty, falsealaram uses its three built-in demo claims and attempts live
+Semantic Scholar/OpenAlex source lookup. Demo verdicts are examples, not model
+judgments. Opinions and jokes on the page are intentionally not included.
 
 ## API modes
 
-- **Direct** requires Gemini and Grok API keys, stored in the browser's
-  `chrome.storage.local`.
+- **Direct** stores keys in the browser's `chrome.storage.local`. Gemini is
+  required for live checks; Grok is optional and Gemini performs the final
+  comparison when Grok is not configured.
 - **Proxy** sends model requests to the configured Node server. Keep API keys
   on the server in environment variables; never commit them.
-- Source search uses Google Scholar when enabled, then OpenAlex. Wikipedia and
-  DuckDuckGo results are used as fallbacks; Google Scholar scraping is best-effort
-  and can be blocked.
+- Google Scholar scraping is a proxy-only best-effort attempt. Semantic
+  Scholar is tried next, followed by OpenAlex.
 
 For the local proxy, copy `proxy/.env.example` to `.env` in the project root,
 then set `GEMINI_API_KEY` (or the legacy `gemini_token`), plus optionally
@@ -45,7 +46,7 @@ environment and falsealaram Options when configured.
 
 ## Safety and limits
 
-- The claim limit is configurable (default 12, maximum 20).
+- A maximum of five claims are checked per page.
 - Banking, email, login/account/checkout pages, password-field pages, and
   incognito contexts are skipped.
 - Claim results are cached locally for seven days.

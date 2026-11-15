@@ -5,12 +5,29 @@ import { geminiGenerate, grokGenerate } from '../src/shared/llm';
 import { searchSources } from '../src/background/providers';
 
 const app = express();
+const geminiKey = () => process.env.GEMINI_API_KEY || process.env.gemini_token;
 // Only the extension (chrome-extension:// origin) or non-browser clients may call this.
 app.use(cors({ origin: (o, cb) => cb(null, !o || o.startsWith('chrome-extension://')) }));
-app.use(express.json({ limit: '3mb' }));
+app.use(express.json({ limit: '1mb' }));
+const requests = new Map<string, { startedAt: number; count: number }>();
+app.use('/api', (req, res, next) => {
+  const now = Date.now(), key = req.ip || req.socket.remoteAddress || 'unknown';
+  const bucket = requests.get(key);
+  if (!bucket || now - bucket.startedAt >= 60_000) {
+    requests.set(key, { startedAt: now, count: 1 });
+    next();
+    return;
+  }
+  if (bucket.count >= 30) {
+    res.status(429).json({ error: 'Rate limited, try again in a minute.' });
+    return;
+  }
+  bucket.count++;
+  next();
+});
 app.use('/api', (req, res, next) => {
   const t = process.env.PROXY_TOKEN;
-  if (t && req.header('x-falsealarm-token') !== t) return res.status(401).json({ error: 'Bad proxy token' });
+  if (t && req.header('x-falsealaram-token') !== t) return res.status(401).json({ error: 'Bad proxy token' });
   next();
 });
 
@@ -24,11 +41,17 @@ const need = (b: any) => {
 
 app.post('/api/gemini', wrap(async (b) => {
   need(b);
-  return { text: await geminiGenerate({ apiKey: process.env.GEMINI_API_KEY!, model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite', system: b.system, user: b.user, schema: b.schema }) };
+  const apiKey = geminiKey();
+  if (!apiKey) throw Object.assign(new Error('Missing GEMINI_API_KEY (or legacy gemini_token) in the proxy environment.'), { status: 500 });
+  return { text: await geminiGenerate({ apiKey, model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite', system: b.system, user: b.user, schema: b.schema }) };
 }));
 app.post('/api/grok', wrap(async (b) => {
   need(b);
-  return { text: await grokGenerate({ apiKey: process.env.GROK_API_KEY!, model: process.env.GROK_MODEL || 'grok-4.7', system: b.system, user: b.user, schema: b.schema }) };
+  const apiKey = process.env.GROK_API_KEY;
+  if (apiKey) return { text: await grokGenerate({ apiKey, model: process.env.GROK_MODEL || 'grok-4.7', system: b.system, user: b.user, schema: b.schema }) };
+  const fallbackKey = geminiKey();
+  if (!fallbackKey) throw Object.assign(new Error('Missing GROK_API_KEY and GEMINI_API_KEY (or legacy gemini_token) in the proxy environment.'), { status: 500 });
+  return { text: await geminiGenerate({ apiKey: fallbackKey, model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite', system: b.system, user: b.user, schema: b.schema }) };
 }));
 app.post('/api/sources', wrap(async (b) => {
   if (!Array.isArray(b.keywords) || !b.keywords.every((k: unknown) => typeof k === 'string')) throw Object.assign(new Error('Bad request'), { status: 400 });
@@ -36,4 +59,4 @@ app.post('/api/sources', wrap(async (b) => {
 }));
 
 const port = Number(process.env.PORT) || 8787;
-app.listen(port, () => console.log(`FalseAlarm proxy on http://localhost:${port}`));
+app.listen(port, () => console.log(`falsealaram proxy on http://localhost:${port}`));

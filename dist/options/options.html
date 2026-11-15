@@ -1,29 +1,29 @@
 <!doctype html>
-<script type="module" crossorigin src="../assets/options-Lwdu-TQ4.js"></script>
-<link rel="modulepreload" crossorigin href="../assets/settings-BGydi4ta.js">
+<script type="module" crossorigin src="../assets/options-B5n5aFIU.js"></script>
+<link rel="modulepreload" crossorigin href="../assets/settings-BATEfMU5.js">
 
 <meta charset="utf-8">
-<title>FalseAlarm settings</title>
+<title>falsealaram settings</title>
 <style>
   body{font:14px system-ui;max-width:640px;margin:32px auto;padding:0 16px}
   label{display:block;margin:12px 0 4px;font-weight:600}
   input,select,textarea{width:100%;padding:6px;box-sizing:border-box}
   input[type=checkbox]{width:auto}button{margin:16px 8px 0 0;padding:8px 14px}small{color:#666}
 </style>
-<h1>FalseAlarm settings</h1>
+<h1>falsealaram settings</h1>
 <label>Mode
   <select id="mode"><option value="direct">Direct (keys stored in this browser)</option><option value="proxy">Proxy (keys on your server)</option></select></label>
 <label>Proxy URL <input id="proxyUrl"></label>
 <label>Proxy token <input id="proxyToken" type="password"></label>
 <label>Gemini API key <input id="geminiKey" type="password" autocomplete="off"></label>
-<label>Grok (xAI) API key <input id="grokKey" type="password" autocomplete="off"></label>
+<label>Grok (xAI) API key (optional) <input id="grokKey" type="password" autocomplete="off"></label>
 <label>OpenAlex API key (optional) <input id="openAlexKey" type="password" autocomplete="off"></label>
 <label>Gemini model <input id="geminiModel"></label>
 <label>Grok model <input id="grokModel"></label>
-<label>Confidence threshold (0-1) <input id="confidenceThreshold" type="number" step="0.05" min="0" max="1"></label>
-<label>Max claims per page <input id="maxClaims" type="number" min="1" max="20"></label>
+<label>Fact-check priority threshold (0-1) <input id="confidenceThreshold" type="number" step="0.05" min="0" max="1"></label>
+<label>Max claims per page (up to 5) <input id="maxClaims" type="number" min="1" max="5"></label>
 <label><input id="autoScan" type="checkbox"> Auto-scan pages</label>
-<label><input id="scholarEnabled" type="checkbox"> Try Google Scholar first (then OpenAlex, then the web)</label>
+<label><input id="scholarEnabled" type="checkbox"> In proxy mode, try Google Scholar first (then Semantic Scholar and OpenAlex)</label>
 <label>Blocked domains (one per line) <textarea id="blocklist" rows="6"></textarea></label>
 <button id="save">Save</button><button id="clear">Clear result cache</button> <span id="msg"></span>
-<p><small>Direct mode requires Gemini and Grok keys, stored in chrome.storage.local (unencrypted, on this device). In proxy mode, keys stay on your server. Page text is sent to Google (Gemini) and source summaries to xAI - never on blocklisted/sensitive pages. If scholarly search finds nothing, lookups continue on Wikipedia and DuckDuckGo. If those sources do not address the claim, Grok judges it and names the sources it used.</small></p>
+<p><small>Keys are stored in chrome.storage.local (unencrypted, on this device). Gemini is required for live Direct-mode checks; Grok is optional and Gemini is used for comparisons when it is blank. With no Direct-mode keys, falsealaram uses built-in demo claims and live scholarly search. Page text is never sent on blocklisted or sensitive pages.</small></p>
