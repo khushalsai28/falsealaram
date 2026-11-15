@@ -5,9 +5,10 @@
   can use Gemini alone when Grok is unavailable. Browser-local keys are stored
   in `chrome.storage.local` and are not encrypted; proxy mode keeps keys on the
   server.
-- Source availability, ranking, abstracts, and coverage vary. Retrieved sources
-  may address a claim only indirectly, and web fallback results are not always
-  scholarly.
+- Source availability, ranking, abstracts, and coverage vary. When Google
+  Scholar, OpenAlex, or web results do not address a claim or do not show it
+  is wrong, Grok searches the web and the card uses the pages that search
+  opened. Those pages are not always scholarly.
 - Google Scholar has no official public search API; scraping is best-effort and
   can be blocked.
 - The research agent reads public source pages and can be limited by CORS,

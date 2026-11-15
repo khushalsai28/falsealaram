@@ -6,11 +6,11 @@ import { normalizeText, sha16 } from '../shared/text';
 import { asDetect, asGrokCheck, asSummaries, asVerdict } from '../shared/json';
 import { describeError, fetchRetry } from '../shared/net';
 import { CMP_SCHEMA, CMP_SYSTEM, DETECT_SCHEMA, DETECT_SYSTEM, GROK_SCHEMA, GROK_SYSTEM, SUM_SCHEMA, SUM_SYSTEM } from '../shared/prompts';
-import { callLLM } from './llm';
+import { callGrokSearch, callLLM } from './llm';
 import { resolveKeys } from './config';
 import { reliabilityOf, searchSources } from './providers';
 
-const PREFIX = 'fl:v1:', TTL = 7 * 864e5, MAX_CACHE = 300;
+const PREFIX = 'fl:v2:', TTL = 7 * 864e5, MAX_CACHE = 300;
 const MAX_CHUNK = 15000, BATCH_CHARS = 30000, MAX_BATCHES = 45, CONCURRENCY = 4;
 
 const send = (tabId: number, msg: ToContent) => chrome.tabs.sendMessage(tabId, msg).catch(() => undefined);
@@ -116,13 +116,61 @@ async function judge(c: Claim, s: Settings, sources: Source[], base: Pick<FactCh
   return { ...base, ...v, sources };
 }
 
-async function grokDirect(c: Claim, s: Settings, base: Pick<FactCheckResult, 'claimId' | 'claimHash' | 'claimText' | 'checkedAt'>): Promise<FactCheckResult> {
-  const g = asGrokCheck(await callLLM('grok', s, GROK_SYSTEM, JSON.stringify({ claim: c.text }), GROK_SCHEMA));
-  const sources: Source[] = g.sources.map((x) => ({
-    title: x.title, authors: [], year: null, url: x.url, abstract: x.summary, summary: x.summary,
-    provider: 'Grok', reliability: reliabilityOf(x.url),
+const MISS = /does not directly address the claim|no abstract available|no summary available/i;
+const sourceAddresses = (summary?: string) => !MISS.test(summary ?? '');
+
+function canonicalUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    parsed.hash = '';
+    if (parsed.pathname.length > 1) parsed.pathname = parsed.pathname.replace(/\/$/, '');
+    return parsed.href.toLowerCase();
+  } catch { return url.trim().toLowerCase(); }
+}
+
+function keepAddressing(sources: Source[], supporting: number[]): { sources: Source[]; supportingSources: number[] } {
+  const kept: Source[] = [];
+  const renumber = new Map<number, number>();
+  sources.forEach((source, index) => {
+    if (!sourceAddresses(source.summary)) return;
+    renumber.set(index + 1, kept.length + 1);
+    kept.push(source);
+  });
+  return {
+    sources: kept,
+    supportingSources: supporting.map((n) => renumber.get(n)).filter((n): n is number => typeof n === 'number'),
+  };
+}
+
+/** Grok replaces retrieved sources when they do not contradict the claim. */
+async function grokFound(c: Claim, s: Settings, base: Pick<FactCheckResult, 'claimId' | 'claimHash' | 'claimText' | 'checkedAt'>): Promise<FactCheckResult> {
+  const web = await callGrokSearch(s, GROK_SYSTEM, JSON.stringify({ claim: c.text }), GROK_SCHEMA);
+  const g = asGrokCheck(web.value);
+  const allowed = new Set(web.citations.map(canonicalUrl));
+  const cited = g.sources
+    .map((source, index) => ({ ...source, n: index + 1 }))
+    .filter((source) => sourceAddresses(source.summary) && (!allowed.size || allowed.has(canonicalUrl(source.url))))
+    .slice(0, 3);
+  const renumber = new Map(cited.map((source, index) => [source.n, index + 1]));
+  let sources: Source[] = cited.map((source) => ({
+    title: source.title, authors: [], year: null, url: source.url, abstract: source.summary, summary: source.summary,
+    provider: 'Grok', reliability: reliabilityOf(source.url),
   }));
-  return { ...base, verdict: g.verdict, explanation: g.explanation, correction: g.correction, supportingSources: g.supportingSources, sources };
+  let supportingSources = g.supportingSources.map((n) => renumber.get(n)).filter((n): n is number => typeof n === 'number');
+  if (!sources.length) {
+    sources = web.citations.slice(0, 3).map((url) => ({
+      title: url, authors: [], year: null, url, abstract: '', summary: 'Page opened by Grok while checking this claim.',
+      provider: 'Grok' as const, reliability: reliabilityOf(url),
+    }));
+    supportingSources = sources.map((_, index) => index + 1);
+  }
+  if (!sources.length) {
+    return {
+      ...base, verdict: 'insufficient evidence', supportingSources: [], sources: [], correction: '',
+      explanation: 'Grok searched the web but did not return sources that address this claim.',
+    };
+  }
+  return { ...base, verdict: g.verdict, explanation: g.explanation, correction: g.correction, supportingSources, sources };
 }
 
 async function checkClaim(c: Claim, s: Settings): Promise<FactCheckResult> {
@@ -132,10 +180,19 @@ async function checkClaim(c: Claim, s: Settings): Promise<FactCheckResult> {
 
   const base = { claimId: c.id, claimHash: c.hash, claimText: c.text, checkedAt: Date.now() };
   const sources = await retrieve(c, s);
-  let result = await judge(c, s, sources, base);
-  const misses = !result.sources.length || result.sources.every((x) =>
-    /does not directly address the claim|no abstract available|no summary available/i.test(x.summary ?? ''));
-  if (misses) result = await grokDirect(c, s, base);
+  const judged = await judge(c, s, sources, base);
+  const usable = keepAddressing(judged.sources, judged.supportingSources);
+  let result = judged;
+  if (judged.verdict === 'contradicted' && usable.sources.length) result = { ...judged, ...usable };
+  else {
+    try { result = await grokFound(c, s, base); }
+    catch (e) {
+      result = {
+        ...base, verdict: 'insufficient evidence', supportingSources: [], sources: [], correction: '',
+        explanation: `Retrieved sources did not show this claim is wrong, and Grok search could not finish: ${describeError(e)}`,
+      };
+    }
+  }
   await chrome.storage.local.set({ [key]: result });
   if (Math.random() < 0.1) void prune();
   return result;

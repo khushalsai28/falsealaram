@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { runAgent, type AgentDependencies, type AgentModelClient } from '../src/lib/agent';
-import { geminiGenerate, grokGenerate } from '../src/shared/llm';
+import { geminiGenerate, grokGenerate, grokSearch } from '../src/shared/llm';
 import { searchSources } from '../src/background/providers';
 import { DEFAULT_GEMINI_MODEL, DEFAULT_GROK_MODEL, normalizeGeminiModel, normalizeGrokModel } from '../src/shared/models';
 
@@ -33,7 +33,13 @@ app.post('/api/gemini', wrap(async (b) => {
 app.post('/api/grok', wrap(async (b) => {
   need(b);
   const model = normalizeGrokModel(process.env.GROK_MODEL ?? DEFAULT_GROK_MODEL);
-  return { text: await grokGenerate({ apiKey: process.env.GROK_API_KEY!, model, system: b.system, user: b.user, schema: b.schema }) };
+  const apiKey = process.env.GROK_API_KEY;
+  if (!apiKey) throw Object.assign(new Error('Missing GROK_API_KEY in the proxy environment.'), { status: 503 });
+  if (b.search === true) {
+    const found = await grokSearch({ apiKey, model, system: b.system, user: b.user });
+    return { text: found.text, citations: found.citations };
+  }
+  return { text: await grokGenerate({ apiKey, model, system: b.system, user: b.user, schema: b.schema }) };
 }));
 app.post('/api/sources', wrap(async (b) => {
   if (!Array.isArray(b.keywords) || !b.keywords.every((k: unknown) => typeof k === 'string')) throw Object.assign(new Error('Bad request'), { status: 400 });

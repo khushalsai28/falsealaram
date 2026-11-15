@@ -1,6 +1,6 @@
 import type { Settings } from '../shared/types';
 import { fetchRetry } from '../shared/net';
-import { geminiGenerate, grokGenerate } from '../shared/llm';
+import { geminiGenerate, grokGenerate, grokSearch } from '../shared/llm';
 import { parseJson } from '../shared/json';
 import { resolveKeys } from './config';
 
@@ -60,6 +60,35 @@ async function rawCall(kind: Kind, s: Settings, system: string, user: string, sc
     return geminiGenerate({ apiKey: k.gemini, model: s.geminiModel, system, user, schema });
   }
   return grokGenerate({ apiKey: k.grok, model: s.grokModel, system, user, schema });
+}
+
+/** Grok web search. Retries once when the reply is not JSON. Does not fall back to Gemini. */
+export async function callGrokSearch(s: Settings, system: string, user: string, schema: object): Promise<{ value: unknown; citations: string[] }> {
+  for (let attempt = 0; ; attempt++) {
+    let text = '';
+    let citations: string[] = [];
+    if (s.mode === 'proxy') {
+      const res = await fetchRetry(`${s.proxyUrl.replace(/\/$/, '')}/api/grok`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-falsealaram-token': s.proxyToken },
+        body: JSON.stringify({ system, user, schema, search: true }),
+      }, { timeoutMs: 60000, retries: 0 });
+      const body: unknown = await res.json();
+      if (!body || typeof body !== 'object' || typeof (body as { text?: unknown }).text !== 'string')
+        throw new Error('Proxy returned an invalid Grok search response.');
+      text = (body as { text: string }).text;
+      citations = Array.isArray((body as { citations?: unknown }).citations)
+        ? (body as { citations: unknown[] }).citations.filter((url): url is string => typeof url === 'string') : [];
+    } else {
+      const k = resolveKeys(s);
+      if (!k.grok) throw new Error('Add a Grok API key in FalseAlarm options so Grok can search for sources.');
+      const found = await grokSearch({ apiKey: k.grok, model: s.grokModel, system, user });
+      text = found.text;
+      citations = found.citations;
+    }
+    const parsed = parseJson(text);
+    if (parsed !== null && validAgainstSchema(parsed, schema)) return { value: parsed, citations };
+    if (attempt >= 1) throw new Error('Grok web search returned malformed JSON');
+  }
 }
 
 /** Calls the model and returns parsed JSON; retries once if the output is malformed. */

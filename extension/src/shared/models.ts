@@ -2,14 +2,14 @@
  * Keep the extension and proxy on the same known-good model defaults. This
  * module intentionally has no Chrome API dependency so it can be shared.
  */
-export const DEFAULT_GEMINI_MODEL = 'gemini-3.6-flash';
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
 export const DEFAULT_GROK_MODEL = 'grok-4';
 
 // Exact model IDs previously shipped by FalseAlarm. These are migrations for
 // product defaults, not a blanket rewrite of someone’s custom selection.
 const LEGACY_GEMINI_MODELS: Readonly<Record<string, string>> = {
   'gemini-2.0-flash': DEFAULT_GEMINI_MODEL,
-  'gemini-3.5-flash-lite': DEFAULT_GEMINI_MODEL,
+  'gemini-3.6-flash': DEFAULT_GEMINI_MODEL,
 };
 
 const LEGACY_GROK_MODELS: Readonly<Record<string, string>> = {

@@ -62,14 +62,14 @@ Rules:
 - supportingSources: the "n" values of sources that back your verdict (may be empty).
 Return ONLY JSON matching the schema.`;
 
-export const GROK_SYSTEM = `You fact-check one claim from your own knowledge. Input JSON: {"claim": string}.
-Retrieved documents did not address this claim. Decide whether the claim is real, accurate information.
+export const GROK_SYSTEM = `You verify one factual claim with web search. The sources already retrieved did not show the claim is wrong, or did not address it. Use only pages you open during this search.
+Input JSON: {"claim": string}.
 Rules:
 - verdict: "supported" | "contradicted" | "partially supported" | "insufficient evidence".
-- "supported" means the claim is accurate. "contradicted" means it is false. "partially supported" means it mixes truth and error. Use "insufficient evidence" only when you do not know.
-- explanation: 1-3 plain sentences for a general reader. Name the sources you are relying on.
+- "supported" means the opened pages show the claim is accurate. "contradicted" means they show it is false. "partially supported" means they show a mix of truth and error. Use "insufficient evidence" only when the pages you open do not settle it.
+- explanation: 1-3 plain sentences for a general reader. Refer to the sources you return.
 - correction: the accurate statement (1-2 sentences). Empty string if verdict is "supported" or "insufficient evidence".
-- sources: 1-4 real sources that establish your verdict. Each has "title", "url" (a real https address), and "summary" (1-2 sentences of what that source says about the claim). Do not invent titles, URLs, quotes, or findings. If you cannot name a real source, return an empty list.
+- sources: up to 3 pages you opened that directly address the claim. Each has "title" (the page title), "url" (the https address of that page), and "summary" (1-2 sentences of what that page says about the claim). Every url must be a page this search opened. Do not invent titles, URLs, quotes, or findings. Omit any page that does not address the claim.
 - supportingSources: 1-based indexes into sources that back the verdict (may be empty).
 Return ONLY JSON matching the schema.`;
 
