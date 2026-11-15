@@ -54,9 +54,10 @@ function applyText(text) {
 
 async function loadText() {
   try {
-    const res = await fetch('README.md', { cache: 'no-store' });
+    const res = await fetch(`${import.meta.env.BASE_URL}README.md`);
     if (!res.ok) throw new Error('README.md not found');
-    applyText(parseReadme(await res.text()));
+    const md = await res.text();
+    applyText(parseReadme(md));
   } catch (err) {
     document.getElementById('load-error').hidden = false;
     console.error(err);
