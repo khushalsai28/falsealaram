@@ -6,10 +6,12 @@ two complementary modes:
 - **Research agent:** asks Gemini to plan a small set of searches, looks up
   sources in Wikipedia first (then Semantic Scholar and OpenAlex), opens and
   reads the strongest pages, and answers only from the retrieved evidence.
-  The side panel shows each planning, search, open/read, and verification step.
+  The side panel shows a numbered factual claim, a plain-language evidence
+  finding, and each planning, search, open/read, and verification step.
 - **Page scan:** highlights potentially misleading factual claims in the page
   you are reading. It keeps the v2 workflow, now using the same
-  Wikipedia-first retrieval order.
+  Wikipedia-first retrieval order. Its **Claims** button opens a numbered index
+  of every checked claim, including contradictions or corrections when present.
 
 Every result is AI-assisted. Read the linked sources before relying on or
 sharing an answer.

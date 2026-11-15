@@ -1,5 +1,6 @@
 import './agent.css';
 import { agentRunKey, type AgentRunState } from '../shared/agent-state';
+import { verdictCopy } from '../shared/verdict';
 
 interface AgentStep { label: string; detail: string; }
 interface AgentSource {
@@ -37,6 +38,9 @@ const status = $('status');
 const trace = $<HTMLOListElement>('trace');
 const traceState = $('trace-state');
 const answerCard = $('answer-card');
+const claimIndexEl = $('claim-index');
+const claimTextEl = $('claim-text');
+const findingEl = $('finding');
 const verdictEl = $('verdict');
 const confidenceEl = $('confidence');
 const answerEl = $('answer');
@@ -71,10 +75,6 @@ function providerLabel(value?: string): string {
     'google-scholar': 'Google Scholar',
   };
   return labels[(value ?? '').toLowerCase()] ?? value ?? 'Source';
-}
-
-function displayVerdict(value: string): string {
-  return value.replace(/[-_]+/g, ' ');
 }
 
 function setStatus(text: string, error = false) {
@@ -232,15 +232,18 @@ function quoteNode(quote: AgentQuote): HTMLDivElement {
 
 function renderResult(result: AgentResult) {
   for (const step of result.steps ?? []) appendStep(step);
-  const verdict = (result.verdict || 'insufficient_evidence').replace(/-/g, '_');
-  verdictEl.className = `verdict ${verdict}`;
-  verdictEl.textContent = displayVerdict(verdict);
+  const verdict = verdictCopy(result.verdict);
+  claimIndexEl.textContent = 'Claim 1';
+  claimTextEl.textContent = result.query || 'No factual question was provided.';
+  findingEl.textContent = `Finding: ${verdict.finding} (${verdict.label})`;
+  verdictEl.className = `verdict ${verdict.key}`;
+  verdictEl.textContent = verdict.label;
   const confidence = Number(result.confidence);
   confidenceEl.textContent = Number.isFinite(confidence) ? `${Math.round(Math.max(0, Math.min(1, confidence)) * 100)}% confidence` : '';
   answerEl.textContent = result.answer || 'No answer was returned.';
   explanationEl.textContent = result.explanation || '';
   const correction = result.correctedInfo || result.correction || '';
-  correctionEl.textContent = correction ? `Corrected information: ${correction}` : '';
+  correctionEl.textContent = correction ? `${verdict.detailLabel}: ${correction}` : '';
   correctionEl.hidden = !correction;
 
   quotesEl.replaceChildren(...(result.quotes ?? []).map(quoteNode));

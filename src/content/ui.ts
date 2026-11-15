@@ -1,10 +1,15 @@
 import type { Claim, FactCheckResult, Progress } from '../shared/types';
+import { verdictCopy, verdictDisplay } from '../shared/verdict';
 import { HOST_ID } from './extract';
 
 const CSS_TEXT = `
 :host{all:initial}*{box-sizing:border-box;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 #pill{position:fixed;right:16px;bottom:16px;background:#111827;color:#fff;font-size:12px;padding:8px 12px;border-radius:999px;box-shadow:0 4px 14px #0004;pointer-events:none}
 #pill.err{background:#991b1b}
+#claim-index-button{position:fixed;right:16px;bottom:58px;border:0;border-radius:999px;background:#4338ca;color:#fff;font-size:12px;font-weight:700;padding:8px 12px;box-shadow:0 4px 14px #0004;cursor:pointer}
+#claim-index-button:hover{background:#3730a3}
+#claim-index{position:fixed;right:16px;bottom:104px;width:380px;max-width:calc(100vw - 32px);max-height:58vh;overflow:auto;background:#fff;color:#111827;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 12px 40px #0003;padding:14px;font-size:13px;line-height:1.45}
+.index-hd{display:flex;align-items:center;justify-content:space-between;gap:10px}.index-hd strong{font-size:14px}.claim-row{padding:10px 0;border-top:1px solid #eef2f7}.claim-row:first-child{border-top:0}.claim-row-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700}.claim-row-text{margin:5px 0 0}.claim-row-detail{margin:5px 0 0;color:#475569}.claim-row-detail b{color:#334155}
 #card{position:fixed;width:360px;max-width:calc(100vw - 16px);max-height:70vh;overflow:auto;background:#fff;color:#111827;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 12px 40px #0003;padding:14px;font-size:13px;line-height:1.45;outline:none}
 .hd{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
 .brand{font-weight:700;font-size:12px;letter-spacing:.04em;color:#4f46e5}
@@ -20,7 +25,11 @@ a{color:#2563eb;text-decoration:none;font-weight:600}a:hover{text-decoration:und
 .sk{height:10px;border-radius:5px;margin:8px 0;background:linear-gradient(90deg,#eee 25%,#f7f7f7 50%,#eee 75%);background-size:200% 100%;animation:sh 1.2s infinite}
 @keyframes sh{to{background-position:-200% 0}}[hidden]{display:none!important}`;
 
+interface IndexedClaim { claim: Claim; index: number; result?: FactCheckResult }
+
 let host: HTMLElement | null = null, pill: HTMLElement, card: HTMLElement;
+let claimIndexButton: HTMLButtonElement, claimIndexPanel: HTMLElement;
+const indexedClaims = new Map<string, IndexedClaim>();
 let openId: string | null = null, getRect: (() => DOMRect) | null = null, prevFocus: Element | null = null, hideT = 0;
 
 // Build DOM with textContent only: claim/source text comes from pages and LLMs (untrusted).
@@ -41,9 +50,16 @@ function ensure() {
   const st = document.createElement('style');
   st.textContent = CSS_TEXT;
   pill = h('div', { id: 'pill' });
+  claimIndexButton = h('button', { id: 'claim-index-button', type: 'button', 'aria-expanded': 'false' }, 'Claims (0)') as HTMLButtonElement;
+  claimIndexPanel = h('section', { id: 'claim-index', role: 'dialog', 'aria-label': 'Claim index' });
   card = h('div', { id: 'card', role: 'dialog', 'aria-label': 'falsealaram fact check', tabindex: '-1' });
-  pill.hidden = card.hidden = true;
-  root.append(st, pill, card);
+  pill.hidden = card.hidden = claimIndexButton.hidden = claimIndexPanel.hidden = true;
+  claimIndexButton.addEventListener('click', () => {
+    claimIndexPanel.hidden = !claimIndexPanel.hidden;
+    claimIndexButton.setAttribute('aria-expanded', String(!claimIndexPanel.hidden));
+    if (!claimIndexPanel.hidden) renderClaimIndex();
+  });
+  root.append(st, pill, claimIndexButton, claimIndexPanel, card);
   document.documentElement.appendChild(host);
 }
 
@@ -83,24 +99,73 @@ function sourceItem(s: FactCheckResult['sources'][number], n: number, supports: 
     h('div', { class: 'meta' }, [authorText, s.year].filter(Boolean).join(' · ')), h('div', {}, s.summary ?? s.snippet ?? s.abstract ?? ''));
 }
 
+function detailFor(r: FactCheckResult): { label: string; text: string } | null {
+  const copy = verdictCopy(r.verdict);
+  const text = r.correction || r.explanation;
+  return text ? { label: copy.detailLabel, text } : null;
+}
+
+function renderClaimIndex() {
+  if (!claimIndexPanel || claimIndexPanel.hidden) return;
+  const entries = [...indexedClaims.values()].sort((a, b) => a.index - b.index);
+  const close = h('button', { class: 'x', type: 'button', 'aria-label': 'Close claim index' }, 'x');
+  close.addEventListener('click', () => {
+    claimIndexPanel.hidden = true;
+    claimIndexButton.setAttribute('aria-expanded', 'false');
+  });
+  const list = h('ol');
+  for (const entry of entries) {
+    const status = entry.result ? verdictDisplay(entry.result.verdict) : 'Checking';
+    const detail = entry.result ? detailFor(entry.result) : null;
+    const className = entry.result ? `badge ${verdictCopy(entry.result.verdict).key}` : 'tag';
+    list.append(h('li', { class: 'claim-row' },
+      h('div', { class: 'claim-row-hd' }, h('span', {}, `Claim #${entry.index}`), h('span', { class: className }, status)),
+      h('p', { class: 'claim-row-text' }, entry.claim.text),
+      detail ? h('p', { class: 'claim-row-detail' }, h('b', {}, `${detail.label}: `), detail.text) : null,
+    ));
+  }
+  claimIndexPanel.replaceChildren(h('div', { class: 'index-hd' }, h('strong', {}, `Claim index (${entries.length})`), close), list);
+}
+
+/** Keep a readable, numbered index alongside the page highlights. */
+export function upsertClaim(claim: Claim, index: number, result?: FactCheckResult) {
+  ensure();
+  const existing = indexedClaims.get(claim.id);
+  indexedClaims.set(claim.id, { claim, index: existing?.index ?? index, result: result ?? existing?.result });
+  claimIndexButton.hidden = indexedClaims.size === 0;
+  claimIndexButton.textContent = `Claims (${indexedClaims.size})`;
+  renderClaimIndex();
+}
+
+export function clearClaimIndex() {
+  indexedClaims.clear();
+  if (!host?.isConnected) return;
+  claimIndexButton.hidden = true;
+  claimIndexPanel.hidden = true;
+  claimIndexButton.setAttribute('aria-expanded', 'false');
+  claimIndexPanel.replaceChildren();
+}
+
 function render(claim: Claim, r?: FactCheckResult) {
   const close = h('button', { class: 'x', 'aria-label': 'Close (Esc)' }, '✕');
   close.addEventListener('click', closeCard);
+  const claimNumber = indexedClaims.get(claim.id)?.index ?? 1;
   let body: Node;
   if (!r) {
     body = h('div', {}, h('div', { class: 'meta' }, 'Checking scholarly sources…'), h('div', { class: 'sk' }), h('div', { class: 'sk' }), h('div', { class: 'sk', style: 'width:60%' }));
   } else {
     const ol = h('ol');
     r.sources.forEach((s, i) => ol.append(sourceItem(s, i + 1, r.supportingSources.includes(i + 1))));
+    const detail = detailFor(r);
     body = h('div', {},
-      h('span', { class: `badge ${r.verdict}` }, r.verdict.replace(/_/g, ' ')),
+      h('span', { class: `badge ${verdictCopy(r.verdict).key}` }, verdictDisplay(r.verdict)),
       h('p', {}, r.explanation),
-      r.correction && h('p', { class: 'fix' }, h('b', {}, 'Corrected info: '), r.correction),
+      detail ? h('p', { class: 'fix' }, h('b', {}, `${detail.label}: `), detail.text) : null,
       r.demoMode ? h('p', { class: 'meta' }, 'Demo result — built-in example; live scholarly lookup is used for sources.') : null,
       r.sources.length ? h('div', { class: 'meta' }, 'Sources') : null, r.sources.length ? ol : null,
       safeUrl(r.scholarUrl) && h('p', {}, h('a', { href: safeUrl(r.scholarUrl)!, target: '_blank', rel: 'noopener noreferrer' }, 'Search this claim on Google Scholar')));
   }
-  card.replaceChildren(h('div', { class: 'hd' }, h('span', { class: 'brand' }, 'falsealaram'), close),
+  card.replaceChildren(h('div', { class: 'hd' }, h('span', { class: 'brand' }, `falsealaram · Claim #${claimNumber}`), close),
     h('blockquote', {}, claim.text), body,
     h('div', { class: 'ft' }, 'AI-assisted results — verify with the sources before sharing.'));
   return close;
@@ -134,4 +199,9 @@ export function closeCard() {
   window.removeEventListener('resize', onMove);
   if (prevFocus instanceof HTMLElement && prevFocus.isConnected) prevFocus.focus({ preventScroll: true });
 }
-export function destroy() { closeCard(); host?.remove(); host = null; }
+export function destroy() {
+  closeCard();
+  clearClaimIndex();
+  host?.remove();
+  host = null;
+}

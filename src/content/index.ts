@@ -11,6 +11,8 @@ let observer: MutationObserver | null = null, timer = 0;
 const seen = new Set<string>();                 // hashes of text blocks already sent -> never re-checked
 const refs = new Map<string, ChunkRef>();       // chunkId -> DOM refs for the current batch
 const claims = new Map<string, Claim>();
+const claimIndexes = new Map<string, number>();
+let nextClaimIndex = 1;
 const dirty = new Set<Element>();               // roots added by MutationObserver
 
 function blockedReason(): string | null {
@@ -83,7 +85,7 @@ function startObserver() {
 
 function teardown() {
   active = false; observer?.disconnect(); observer = null; clearTimeout(timer);
-  dirty.clear(); refs.clear(); claims.clear(); hl.clear(); ui.destroy(); status = 'Off';
+  dirty.clear(); refs.clear(); claims.clear(); claimIndexes.clear(); nextClaimIndex = 1; hl.clear(); ui.destroy(); status = 'Off';
 }
 
 chrome.runtime.onMessage.addListener((msg: ToContent, _s, send) => {
@@ -91,12 +93,23 @@ chrome.runtime.onMessage.addListener((msg: ToContent, _s, send) => {
     case 'PROGRESS': status = msg.payload.message; if (active) ui.showProgress(msg.payload); break;
     case 'CLAIM_PENDING': {
       const ref = refs.get(msg.payload.claim.chunkId);
-      if (ref && hl.addPending(msg.payload.claim, ref.nodes)) claims.set(msg.payload.claim.id, msg.payload.claim);
+      if (ref && hl.addPending(msg.payload.claim, ref.nodes)) {
+        const claim = msg.payload.claim;
+        claims.set(claim.id, claim);
+        const index = claimIndexes.get(claim.id) ?? nextClaimIndex++;
+        claimIndexes.set(claim.id, index);
+        ui.upsertClaim(claim, index);
+      }
       break;
     }
     case 'CLAIM_RESULT': {
       const e = hl.resolve(msg.payload.result);
-      if (e) ui.updateCard(e.claim, msg.payload.result);
+      if (e) {
+        const index = claimIndexes.get(e.claim.id) ?? nextClaimIndex++;
+        claimIndexes.set(e.claim.id, index);
+        ui.upsertClaim(e.claim, index, msg.payload.result);
+        ui.updateCard(e.claim, msg.payload.result);
+      }
       break;
     }
     case 'POPUP_SCAN': void scan(true); send({ ok: true }); break;
@@ -105,9 +118,12 @@ chrome.runtime.onMessage.addListener((msg: ToContent, _s, send) => {
       // in-page scan budget so the user can deliberately run a fresh scan.
       hl.clear();
       claims.clear();
+      claimIndexes.clear();
+      nextClaimIndex = 1;
       refs.clear();
       seen.clear();
       claimsFound = 0;
+      ui.clearClaimIndex();
       status = 'Highlights cleared.';
       ui.showProgress({ stage: 'done', message: status });
       send({ ok: true });
