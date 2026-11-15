@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FalseAlarm</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee&family=Permanent+Marker&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<!-- All visible text comes from README.md. Edit text there, not here. -->
+<body data-view="after">
+
+  <div id="load-error" class="load-error" hidden>
+    Couldn't load the page text from <code>README.md</code>. If you opened this file by double-clicking it, preview it with a local server instead (see README.md → "Preview on your computer").
+  </div>
+
+  <!-- NAV -->
+  <header class="site-header">
+    <nav class="container nav">
+      <a href="#top" class="logo">
+        <span class="logo-mark">
+          <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#16130F" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="M12 6v4"/><path d="M12 13h.01"/></svg>
+        </span>
+        <span class="logo-text" data-text="brand.name"></span>
+      </a>
+      <div class="nav-links">
+        <a href="#how" data-text="nav.how"></a>
+        <a href="#features" data-text="nav.features"></a>
+        <a href="#demo" data-text="nav.demo"></a>
+        <a href="#" data-href="links.chrome_store" class="btn btn-dark" data-text="nav.cta"></a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section id="top" class="container hero">
+      <div class="hero-text">
+        <span class="badge" data-text="hero.badge"></span>
+        <h1><span data-text="hero.headline"></span><br><span class="accent" data-text="hero.headline_accent"></span></h1>
+        <p class="hero-sub" data-text="hero.subheadline"></p>
+        <div class="hero-actions">
+          <a href="#" data-href="links.chrome_store" class="btn btn-primary"><span data-text="hero.cta"></span></a>
+          <a href="#demo" class="link-underline" data-text="hero.secondary"></a>
+        </div>
+        <p class="hero-note" data-text="hero.note"></p>
+      </div>
+
+      <div class="hero-visual">
+        <div class="visual-frame">
+          <div class="browser">
+            <div class="browser-bar">
+              <span class="dot r"></span><span class="dot o"></span><span class="dot l"></span>
+              <span class="url" data-text="hero.mock.url"></span>
+            </div>
+            <div class="browser-body">
+              <p class="meta" data-text="hero.mock.meta"></p>
+              <p class="article-title" data-text="hero.mock.title"></p>
+              <p class="article-text"><span data-text="hero.mock.before"></span> <span class="claim-flagged" data-text="hero.mock.claim"></span> <span data-text="hero.mock.after"></span></p>
+              <div class="bar" style="width: 92%"></div>
+              <div class="bar" style="width: 78%"></div>
+            </div>
+          </div>
+          <div class="popup">
+            <div class="popup-head">
+              <span class="verdict contradicted" data-text="hero.card.verdict"></span>
+              <span class="popup-brand" data-text="brand.name"></span>
+            </div>
+            <p data-text="hero.card.text" style="font-size: 15px; line-height: 1.5"></p>
+            <p class="popup-footer" data-text="hero.card.footer"></p>
+          </div>
+        </div>
+        <p class="annotation" data-text="hero.annotation"></p>
+      </div>
+    </section>
+
+    <div class="stripes"></div>
+
+    <!-- HOW IT WORKS -->
+    <section id="how" class="how">
+      <div class="container section">
+        <div class="section-head">
+          <p class="kicker" data-text="how.kicker"></p>
+          <h2 data-text="how.title"></h2>
+          <p class="section-intro" data-text="how.intro"></p>
+        </div>
+        <div class="cards">
+          <article class="step s1">
+            <span class="step-num">1</span>
+            <h3 data-text="how.step1.title"></h3>
+            <p data-text="how.step1.text"></p>
+          </article>
+          <article class="step s2">
+            <span class="step-num">2</span>
+            <h3 data-text="how.step2.title"></h3>
+            <p data-text="how.step2.text"></p>
+          </article>
+          <article class="step s3">
+            <span class="step-num">3</span>
+            <h3 data-text="how.step3.title"></h3>
+            <p data-text="how.step3.text"></p>
+            <div class="chips">
+              <span class="chip supported" data-text="how.verdict.supported"></span>
+              <span class="chip partial" data-text="how.verdict.partial"></span>
+              <span class="chip contradicted" data-text="how.verdict.contradicted"></span>
+            </div>
+          </article>
+          <article class="step s4">
+            <span class="step-num">4</span>
+            <h3 data-text="how.step4.title"></h3>
+            <p data-text="how.step4.text"></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section id="features" class="container section features">
+      <div class="section-head">
+        <p class="kicker" data-text="features.kicker"></p>
+        <h2 data-text="features.title"></h2>
+      </div>
+      <div class="cards">
+        <article class="feature">
+          <span class="icon lime"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16130F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="m9 10 2 2 4-4"/></svg></span>
+          <h3 data-text="features.1.title"></h3>
+          <p data-text="features.1.text"></p>
+        </article>
+        <article class="feature">
+          <span class="icon teal"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFDF7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span>
+          <h3 data-text="features.2.title"></h3>
+          <p data-text="features.2.text"></p>
+        </article>
+        <article class="feature">
+          <span class="icon orange"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#16130F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M7 15c1.5-1.5 3 1.5 4.5 0s3 1.5 4.5 0"/></svg></span>
+          <h3 data-text="features.3.title"></h3>
+          <p data-text="features.3.text"></p>
+        </article>
+        <article class="feature">
+          <span class="icon crimson"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FFFDF7" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 9 5-9 5-9-5 9-5z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg></span>
+          <h3 data-text="features.4.title"></h3>
+          <p data-text="features.4.text"></p>
+        </article>
+      </div>
+    </section>
+
+    <div class="stripes"></div>
+
+    <!-- DEMO -->
+    <section id="demo" class="demo">
+      <div class="container section">
+        <div class="demo-head">
+          <div class="section-head">
+            <p class="kicker" data-text="demo.kicker"></p>
+            <h2 data-text="demo.title"></h2>
+            <p class="section-intro" data-text="demo.intro"></p>
+          </div>
+          <div class="toggle-group" role="group" aria-label="Compare before and after">
+            <button class="toggle" id="btn-before" aria-pressed="false" data-text="demo.button.before"></button>
+            <button class="toggle" id="btn-after" aria-pressed="true" data-text="demo.button.after"></button>
+          </div>
+        </div>
+
+        <div class="demo-grid">
+          <div class="browser">
+            <div class="browser-bar">
+              <span class="dot r"></span><span class="dot o"></span><span class="dot l"></span>
+              <span class="url" data-text="demo.article.url"></span>
+            </div>
+            <div class="browser-body">
+              <p class="meta" data-text="demo.article.meta"></p>
+              <p class="article-title" data-text="demo.article.title"></p>
+              <p class="article-text"><span data-text="demo.article.before"></span> <span class="only-before" data-text="demo.article.claim"></span><span class="only-after claim-flagged" data-text="demo.article.claim"></span><span data-text="demo.article.after"></span></p>
+              <div class="bar" style="width: 95%"></div>
+              <div class="bar" style="width: 88%"></div>
+              <div class="bar" style="width: 70%"></div>
+            </div>
+          </div>
+
+          <div class="demo-side">
+            <div class="before-note only-before">
+              <p class="before-note-title" data-text="demo.beforenote.title"></p>
+              <p data-text="demo.beforenote.text"></p>
+            </div>
+
+            <div class="popup only-after">
+              <div class="popup-head">
+                <span class="popup-brand" data-text="brand.name"></span>
+                <span class="verdict contradicted" data-text="demo.card.verdict"></span>
+              </div>
+              <p class="quoted-claim" data-text="demo.card.claim"></p>
+              <div>
+                <p class="label" data-text="demo.card.research_label"></p>
+                <p class="research" data-text="demo.card.research"></p>
+              </div>
+              <div>
+                <p class="label" data-text="demo.card.sources_label"></p>
+                <div class="sources">
+                  <a class="source" href="#" data-href="demo.source1.url" target="_blank" rel="noopener noreferrer">
+                    <span class="source-title" data-text="demo.source1.title"></span>
+                    <span class="source-journal" data-text="demo.source1.journal"></span>
+                  </a>
+                  <a class="source" href="#" data-href="demo.source2.url" target="_blank" rel="noopener noreferrer">
+                    <span class="source-title" data-text="demo.source2.title"></span>
+                    <span class="source-journal" data-text="demo.source2.journal"></span>
+                  </a>
+                  <a class="source" href="#" data-href="demo.source3.url" target="_blank" rel="noopener noreferrer">
+                    <span class="source-title" data-text="demo.source3.title"></span>
+                    <span class="source-journal" data-text="demo.source3.journal"></span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FINAL CTA -->
+    <section class="container final-cta">
+      <h2 data-text="cta.title"></h2>
+      <a href="#" data-href="links.chrome_store" class="btn btn-primary" data-text="cta.button"></a>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="disclaimer">
+        <svg aria-hidden="true" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#CFE07A" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <p><strong data-text="footer.disclaimer_label"></strong> <span data-text="footer.disclaimer"></span></p>
+      </div>
+      <div class="footer-row">
+        <span class="footer-brand" data-text="brand.name"></span>
+        <div class="footer-links">
+          <a href="#how" data-text="footer.link.how"></a>
+          <a href="#features" data-text="footer.link.features"></a>
+          <a href="#privacy" data-text="footer.link.privacy"></a>
+          <a href="#contact" data-text="footer.link.contact"></a>
+        </div>
+        <span class="copyright" data-text="footer.copyright"></span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
