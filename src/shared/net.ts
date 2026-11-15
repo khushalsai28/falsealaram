@@ -8,7 +8,7 @@ const RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
 export async function fetchRetry(
   url: string, init: RequestInit = {}, o: { retries?: number; timeoutMs?: number; baseMs?: number } = {},
 ): Promise<Response> {
-  const { retries = 3, timeoutMs = 30000, baseMs = 1000 } = o;
+  const { retries = 3, timeoutMs = 30000, baseMs = 500 } = o;
   for (let a = 0; ; a++) {
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), timeoutMs);
