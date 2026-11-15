@@ -10,7 +10,7 @@ import { resolveKeys } from './config';
 import { searchSources } from './providers';
 
 const PREFIX = 'fl:v1:', TTL = 7 * 864e5, MAX_CACHE = 300;
-const MAX_CHUNK = 1500, BATCH_CHARS = 12000, MAX_BATCHES = 3, CONCURRENCY = 2;
+const MAX_CHUNK = 1500, BATCH_CHARS = 12000, MAX_BATCHES = 45, CONCURRENCY = 2;
 
 const send = (tabId: number, msg: ToContent) => chrome.tabs.sendMessage(tabId, msg).catch(() => undefined);
 const progress = (tabId: number, p: Progress) => send(tabId, { type: 'PROGRESS', payload: p });

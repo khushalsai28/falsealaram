@@ -5,7 +5,7 @@ import { extract, type ChunkRef } from './extract';
 import * as hl from './highlight';
 import * as ui from './ui';
 
-const MAX_CHUNKS = 60, MAX_CHARS = 24000, DEBOUNCE = 1500;
+const MAX_CHUNKS = 350, MAX_CHARS = 525000, DEBOUNCE = 1500;
 let S: Settings, active = false, scanning = false, status = 'Idle', claimsFound = 0;
 let observer: MutationObserver | null = null, timer = 0;
 const seen = new Set<string>();                 // hashes of text blocks already sent -> never re-checked
