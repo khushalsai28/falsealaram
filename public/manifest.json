@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "FactLens",
+  "version": "2.0.0",
+  "description": "Check factual claims on the pages you read against scholarly sources.",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "host_permissions": [
+    "https://api.semanticscholar.org/*",
+    "https://api.openalex.org/*",
+    "https://generativelanguage.googleapis.com/*",
+    "https://api.x.ai/*"
+  ],
+  "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_title": "FactLens"
+  },
+  "options_page": "src/options/index.html"
+}

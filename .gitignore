@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.env
+server/proxy/node_modules/
+server/proxy/.env

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FactLens</title>
+  </head>
+  <body>
+    <main class="panel">
+      <header class="brand">
+        <div class="mark" aria-hidden="true">F</div>
+        <div><h1>FactLens</h1><p>Evidence, where you read</p></div>
+        <label class="switch" aria-label="Enable FactLens">
+          <input id="enabled" type="checkbox" />
+          <span></span>
+        </label>
+      </header>
+      <button id="scan" class="primary">Scan this page</button>
+      <p id="status" class="status" role="status">Ready to scan this page.</p>
+      <button id="clear" class="secondary">Clear highlights</button>
+      <footer><a id="options" href="../options/index.html">Settings & API keys</a></footer>
+    </main>
+    <script type="module" src="./popup.ts"></script>
+  </body>
+</html>

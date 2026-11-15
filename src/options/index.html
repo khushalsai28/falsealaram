@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FactLens settings</title>
+  </head>
+  <body>
+    <main class="settings">
+      <header><span class="mark">F</span><div><h1>FactLens settings</h1><p>Choose how FactLens checks claims.</p></div></header>
+      <form id="settings-form">
+        <fieldset>
+          <legend>Connection</legend>
+          <label for="mode">Mode</label>
+          <select id="mode" name="mode">
+            <option value="direct">Direct — use keys stored on this device</option>
+            <option value="proxy">Proxy — use your configured server</option>
+          </select>
+          <label for="proxy-url">Proxy URL</label>
+          <input id="proxy-url" name="proxyUrl" type="url" placeholder="https://your-proxy.example" autocomplete="url" />
+        </fieldset>
+        <fieldset>
+          <legend>Direct mode API keys</legend>
+          <label for="gemini-key">Gemini API key</label>
+          <input id="gemini-key" name="geminiApiKey" type="password" autocomplete="off" spellcheck="false" />
+          <label for="grok-key">Grok API key</label>
+          <input id="grok-key" name="grokApiKey" type="password" autocomplete="off" spellcheck="false" />
+          <p class="note">Keys are stored in chrome.storage.local on this device. They are used only for the configured AI provider. Never share your extension profile.</p>
+        </fieldset>
+        <button class="save" type="submit">Save settings</button>
+        <p id="status" role="status"></p>
+      </form>
+      <p class="privacy">FactLens does not scan banking, login, account, checkout, or email pages. Page text is sent to your selected AI provider when you scan.</p>
+    </main>
+    <script type="module" src="./options.ts"></script>
+  </body>
+</html>
