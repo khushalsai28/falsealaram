@@ -3,6 +3,7 @@ import express from 'express';
 import cors from 'cors';
 import { geminiGenerate, grokGenerate } from '../src/shared/llm';
 import { searchSources } from '../src/background/providers';
+import { DEFAULT_GEMINI_MODEL, DEFAULT_GROK_MODEL, normalizeGeminiModel, normalizeGrokModel } from '../src/shared/models';
 
 const app = express();
 // Only the extension (chrome-extension:// origin) or non-browser clients may call this.
@@ -24,11 +25,13 @@ const need = (b: any) => {
 
 app.post('/api/gemini', wrap(async (b) => {
   need(b);
-  return { text: await geminiGenerate({ apiKey: process.env.GEMINI_API_KEY!, model: process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite', system: b.system, user: b.user, schema: b.schema }) };
+  const model = normalizeGeminiModel(process.env.GEMINI_MODEL ?? DEFAULT_GEMINI_MODEL);
+  return { text: await geminiGenerate({ apiKey: process.env.GEMINI_API_KEY!, model, system: b.system, user: b.user, schema: b.schema }) };
 }));
 app.post('/api/grok', wrap(async (b) => {
   need(b);
-  return { text: await grokGenerate({ apiKey: process.env.GROK_API_KEY!, model: process.env.GROK_MODEL || 'grok-4.7', system: b.system, user: b.user, schema: b.schema }) };
+  const model = normalizeGrokModel(process.env.GROK_MODEL ?? DEFAULT_GROK_MODEL);
+  return { text: await grokGenerate({ apiKey: process.env.GROK_API_KEY!, model, system: b.system, user: b.user, schema: b.schema }) };
 }));
 app.post('/api/sources', wrap(async (b) => {
   if (!Array.isArray(b.keywords) || !b.keywords.every((k: unknown) => typeof k === 'string')) throw Object.assign(new Error('Bad request'), { status: 400 });
