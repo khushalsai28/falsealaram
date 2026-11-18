@@ -25,6 +25,16 @@ Direct page scans require Gemini and Grok API keys in Options; alternatively,
 configure and start the proxy server. Check the linked sources before relying on
 any result.
 
+## Architecture
+
+### System architecture
+
+![FalseAlarm system architecture](docs/system-architecture.png)
+
+### System design
+
+![FalseAlarm system design](docs/system-design.png)
+
 ## Research agent
 
 The toolbar popup also opens a side-panel research agent for a factual question.
