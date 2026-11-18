@@ -16,6 +16,8 @@ unpacked**, and choose the generated `dist` folder.
 
 ## Demo
 
+![FalseAlarm demo](extension/dist/falsealarm-demo.gif)
+
 Open `test/demo.html` (or `dist/demo-test-page.html` after building), open the
 FalseAlarm toolbar popup, and select **Scan this page**. The resulting
 **Flagged on this page** list jumps to each false, misleading, or unsure claim.
