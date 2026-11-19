@@ -1,10 +1,20 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import { runAgent, type AgentDependencies, type AgentModelClient } from '../src/lib/agent';
 import { geminiGenerate, grokGenerate, grokSearch } from '../src/shared/llm';
 import { searchSources } from '../src/background/providers';
 import { DEFAULT_GEMINI_MODEL, DEFAULT_GROK_MODEL, normalizeGeminiModel, normalizeGrokModel } from '../src/shared/models';
+
+const proxyDir = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(proxyDir, '../../.env') });
+dotenv.config({ path: path.resolve(proxyDir, '../.env') });
+
+const geminiApiKey = () => process.env.GEMINI_API_KEY?.trim() || process.env.gemini_token?.trim();
+const grokApiKey = () => process.env.GROK_API_KEY?.trim() || process.env.grok_token?.trim();
+const openAlexApiKey = () => process.env.OPENALEX_API_KEY?.trim();
 
 const app = express();
 // Only the extension (chrome-extension:// origin) or non-browser clients may call this.
@@ -28,12 +38,14 @@ const need = (b: any) => {
 app.post('/api/gemini', wrap(async (b) => {
   need(b);
   const model = normalizeGeminiModel(process.env.GEMINI_MODEL ?? DEFAULT_GEMINI_MODEL);
-  return { text: await geminiGenerate({ apiKey: process.env.GEMINI_API_KEY!, model, system: b.system, user: b.user, schema: b.schema }) };
+  const apiKey = geminiApiKey();
+  if (!apiKey) throw Object.assign(new Error('Missing GEMINI_API_KEY in the proxy environment.'), { status: 503 });
+  return { text: await geminiGenerate({ apiKey, model, system: b.system, user: b.user, schema: b.schema }) };
 }));
 app.post('/api/grok', wrap(async (b) => {
   need(b);
   const model = normalizeGrokModel(process.env.GROK_MODEL ?? DEFAULT_GROK_MODEL);
-  const apiKey = process.env.GROK_API_KEY;
+  const apiKey = grokApiKey();
   if (!apiKey) throw Object.assign(new Error('Missing GROK_API_KEY in the proxy environment.'), { status: 503 });
   if (b.search === true) {
     const found = await grokSearch({ apiKey, model, system: b.system, user: b.user });
@@ -43,11 +55,11 @@ app.post('/api/grok', wrap(async (b) => {
 }));
 app.post('/api/sources', wrap(async (b) => {
   if (!Array.isArray(b.keywords) || !b.keywords.every((k: unknown) => typeof k === 'string')) throw Object.assign(new Error('Bad request'), { status: 400 });
-  return { sources: await searchSources(b.keywords.slice(0, 4), { scholar: b.scholar !== false, openAlexKey: process.env.OPENALEX_API_KEY, limit: Math.min(Number(b.limit) || 3, 5) }) };
+  return { sources: await searchSources(b.keywords.slice(0, 4), { scholar: b.scholar !== false, openAlexKey: openAlexApiKey(), limit: Math.min(Number(b.limit) || 3, 5) }) };
 }));
 
 function agentClient(kind: 'gemini' | 'grok'): AgentModelClient | undefined {
-  const apiKey = kind === 'gemini' ? process.env.GEMINI_API_KEY : process.env.GROK_API_KEY;
+  const apiKey = kind === 'gemini' ? geminiApiKey() : grokApiKey();
   if (!apiKey) return undefined;
   return {
     generate(system, user, schema) {
@@ -64,7 +76,7 @@ function agentClient(kind: 'gemini' | 'grok'): AgentModelClient | undefined {
 const proxyResearchSearch: AgentDependencies['search'] = async (_providers, query, limit = 3) =>
   searchSources([query], {
     scholar: true,
-    openAlexKey: process.env.OPENALEX_API_KEY,
+    openAlexKey: openAlexApiKey(),
     limit: Math.min(Math.max(limit, 1), 5),
   });
 

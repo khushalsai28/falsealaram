@@ -45,8 +45,8 @@ the final screening when configured and Gemini is the fallback otherwise.
 
 ## API modes
 
-- **Direct** page scans require Gemini and Grok API keys, stored in the
-  browser's `chrome.storage.local`. The research agent can run with Gemini only.
+- **Direct** page scans require a Gemini API key. Grok is optional and improves
+  source screening. Both keys are stored in the browser's `chrome.storage.local`.
 - **Proxy** sends model requests to the configured Node server. Keep API keys
   on the server in environment variables; never commit them.
 - Source search uses Google Scholar when enabled, then OpenAlex. Wikipedia and

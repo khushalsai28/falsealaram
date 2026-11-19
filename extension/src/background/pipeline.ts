@@ -28,7 +28,7 @@ export async function runScan(tabId: number, req: ScanRequest): Promise<ScanSumm
   if (isBlockedUrl(req.pageUrl, s.blocklist)) return fail('Sensitive site (blocklist) - nothing was sent.');
   if (s.mode === 'direct') {
     const k = resolveKeys(s);
-    if (!k.gemini || !k.grok) return fail('Add your Gemini and Grok API keys in FalseAlarm options.');
+    if (!k.gemini) return fail('Add your Gemini API key in FalseAlarm options.');
   }
   try {
     progress(tabId, { stage: 'detecting', message: 'Scanning page for suspicious claims…' });
